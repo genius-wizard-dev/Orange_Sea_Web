@@ -1,7 +1,9 @@
-import { store } from "@/redux/store";
+// import { store } from "@/redux/store";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Provider } from "react-redux";
 import "./globals.css";
+import "./bg.css";
+import OceanBackground from "@/components/background/OceanBackground";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,7 +25,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Provider store={store}>{children}</Provider>;
+        <OceanBackground />
+        {/* <Provider store={store}>{children}</Provider>; */}
+        {children}
       </body>
     </html>
   );
