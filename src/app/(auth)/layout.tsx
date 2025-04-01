@@ -10,5 +10,12 @@ export default function AuthLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <div className={``}>{children}</div>;
+  return <div className="w-screen h-screen flex items-center justify-center">
+    <div className="mx-auto bg-white px-6 py-3 border-2 border-b-4 border-primary rounded-md max-w-[400px] w-full">
+      <div className="flex items-center justify-center mb-4 mt-3">
+        <img src="/images/OrangeSEA.png" alt="Logo" className="w-[200px]" />
+      </div>
+      {children}
+    </div>
+  </div>;
 }
