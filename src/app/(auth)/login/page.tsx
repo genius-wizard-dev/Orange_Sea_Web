@@ -25,7 +25,7 @@ const LoginPage: React.FC = () => {
 					<Checkbox id="remember" />
 					<label htmlFor="remember" className="text-sm text-muted-foreground ml-2">Keep me signed in on this device.</label>
 				</div>
-				<a href="#" className="text-sm text-primary hover:underline">Forgot password?</a>
+				<a href="/reset" className="text-sm text-primary hover:underline">Forgot password?</a>
 			</div>
 			<Button className="w-full">SIGN IN</Button>
 			<span className="block my-1 text-center text-gray-500">or</span>
