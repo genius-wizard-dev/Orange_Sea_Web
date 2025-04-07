@@ -1,57 +1,110 @@
 import { ApiService } from "@/types/api.service";
 import ApiClient from "@/utils/axios";
 import { getDeviceId } from "@/utils/fingerprint";
-import { AxiosResponse, Method } from "axios";
-import { getFcmToken } from "../utils/firebase";
+import {
+  getAccessToken,
+  getAccessTokenSafe,
+  getFcmTokenFromCookies,
+  getFcmTokenFromServerCookies,
+  isServer,
+} from "@/utils/token";
+import { InternalAxiosRequestConfig } from "axios";
 
-const instance = ApiClient.getInstance();
+// Get the preconfigured axios instance
+const axiosInstance = ApiClient.getInstance();
 
-const getHeaders = async (token?: string): Promise<Record<string, string>> => {
-  const headers: Record<string, string> = {};
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-  const deviceId = await getDeviceId();
-  headers["X-Device-ID"] = deviceId;
+// Add authorization token to requests
+axiosInstance.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    // Use safe version of getAccessToken that works in both client and server
+    const token = isServer()
+      ? getAccessTokenSafe(config.headers?.cookie as string)
+      : getAccessToken();
 
-  try {
-    const fcmToken = await getFcmToken();
-    if (fcmToken) {
-      headers["X-FCM-Token"] = fcmToken;
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
-  } catch (error) {
-    console.error("Failed to get FCM token:", error);
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Handle response and potential token refresh
+axiosInstance.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  async (error) => {
+    // Handle 401 (Unauthorized) - token expiration
+    if (error.response && error.response.status === 401) {
+    }
+    return Promise.reject(error);
+  }
+);
+
+class ApiServiceImpl implements ApiService {
+  private async request<T>(
+    method: string,
+    uri: string,
+    data?: any
+  ): Promise<T> {
+    try {
+      console.log(`📤 Making ${method} request to ${uri}`, { data });
+
+      // Skip device ID and FCM token on server-side
+      let headers: Record<string, string> = {};
+
+      if (!isServer()) {
+        // Client-side - get device ID and FCM token
+        const deviceId = await getDeviceId();
+        const fcmToken = getFcmTokenFromCookies();
+
+        headers = {
+          "X-Device-ID": deviceId,
+          "X-FCM-Token": fcmToken,
+        };
+      } else {
+        // Server-side - only add available headers
+        // We could try to get FCM from server cookies if needed
+        const fcmToken = getFcmTokenFromServerCookies();
+        if (fcmToken) {
+          headers["X-FCM-Token"] = fcmToken;
+        }
+      }
+
+      const response = await axiosInstance.request<T>({
+        method,
+        url: uri,
+        data,
+        headers,
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Error in ${method} request to ${uri}:`, error);
+      throw error;
+    }
   }
 
-  return headers;
-};
-
-// Hàm request chung
-const request = async <T>(
-  method: Method,
-  uri: string,
-  data?: any,
-  token?: string,
-  params?: any
-): Promise<AxiosResponse<T>> => {
-  try {
-    const headers = await getHeaders(token);
-    return await instance.request<T>({ method, url: uri, headers, data, params });
-  } catch (error: any) {
-    throw error.response?.data || error.message || error;
+  async get<T>(uri: string): Promise<T> {
+    return this.request<T>("GET", uri);
   }
-};
 
-// Định nghĩa ApiService
-const apiService: ApiService = {
-  get: <T>(uri: string, token?: string, params?: any) =>
-    request<T>("GET", uri, undefined, token, params),
-  post: <T>(uri: string, data?: any, token?: string) =>
-    request<T>("POST", uri, data, token),
-  put: <T>(uri: string, data?: any, token?: string) =>
-    request<T>("PUT", uri, data, token),
-  delete: <T>(uri: string, data?: any, token?: string) =>
-    request<T>("DELETE", uri, data, token),
-};
+  async post<T>(uri: string, data?: any): Promise<T> {
+    return this.request<T>("POST", uri, data);
+  }
+
+  async put<T>(uri: string, data?: any): Promise<T> {
+    return this.request<T>("PUT", uri, data);
+  }
+
+  async delete<T>(uri: string): Promise<T> {
+    return this.request<T>("DELETE", uri);
+  }
+}
+
+const apiService = new ApiServiceImpl();
 
 export default apiService;

@@ -1,15 +1,15 @@
 // import { store } from "@/redux/store";
-import { Geist, Geist_Mono } from "next/font/google";
-import { Provider } from "react-redux";
-import "./globals.css";
-import "./bg.css";
 import OceanBackground from "@/components/background/OceanBackground";
-
+import MainLayout from "@/components/Main";
+import { Toaster } from "@/components/ui/sonner";
+import FCMToken from "@/lib/firebaseForeground";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./bg.css";
+import "./globals.css";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
-
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
@@ -26,8 +26,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <OceanBackground />
-        {/* <Provider store={store}>{children}</Provider>; */}
-        {children}
+        <FCMToken />
+        <MainLayout>{children}</MainLayout>
+        <Toaster position="top-right" />
       </body>
     </html>
   );

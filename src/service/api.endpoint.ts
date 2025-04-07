@@ -1,4 +1,4 @@
-const BASE_ENDPOINT = '/api'
+const BASE_ENDPOINT = "/api";
 
 export const ENDPOINTS = {
   AUTH: {
@@ -6,6 +6,8 @@ export const ENDPOINTS = {
     REGISTER: `${BASE_ENDPOINT}/auth/register`,
     REFRESH: `${BASE_ENDPOINT}/auth/refresh`,
     LOGOUT: `${BASE_ENDPOINT}/auth/logout`,
+    IS_REGISTER: `${BASE_ENDPOINT}/auth/is-register`,
+    VERIFY_OTP: `${BASE_ENDPOINT}/auth/verify-otp`,
   },
   PROFILE: {
     ME: `${BASE_ENDPOINT}/profile/me`,
@@ -13,7 +15,8 @@ export const ENDPOINTS = {
   },
   ACCOUNT: {
     INFO: (id: number) => `${BASE_ENDPOINT}/account/${id}`,
-    GET_BY_USERNAME: (username: string) => `${BASE_ENDPOINT}/account/username/${username}`,
+    GET_BY_USERNAME: (username: string) =>
+      `${BASE_ENDPOINT}/account/username/${username}`,
     PASSWORD: (id: number) => `${BASE_ENDPOINT}/account/${id}/password`,
-  }
-}
+  },
+};

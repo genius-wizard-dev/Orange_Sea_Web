@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 // Login Request Schema
 export const LoginRequestSchema = z.object({
@@ -8,23 +8,25 @@ export const LoginRequestSchema = z.object({
 
 // Login Response Schema
 export const LoginResponseSchema = z.object({
-  status: z.enum(['success', 'fail']),
+  status: z.enum(["success", "fail"]),
   message: z.string(),
-  data: z.object({
-    access_token: z.string(),
-    refresh_token: z.string(),
-    account: z.object({
-      id: z.string(),
-      email: z.string(),
-      username: z.string(),
-      role: z.string(),
-    }),
-    profile: z.object({
-      id: z.string(),
-      name: z.string(),
-      avatar: z.string(),
-    }),
-  }).optional(),
+  data: z
+    .object({
+      access_token: z.string(),
+      refresh_token: z.string(),
+      account: z.object({
+        id: z.string(),
+        email: z.string(),
+        username: z.string(),
+        role: z.string(),
+      }),
+      profile: z.object({
+        id: z.string(),
+        name: z.string(),
+        avatar: z.string(),
+      }),
+    })
+    .optional(),
 });
 
 // Types
