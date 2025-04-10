@@ -59,6 +59,7 @@ class ApiServiceImpl implements ApiService {
       if (!isServer()) {
         // Client-side - get device ID and FCM token
         const deviceId = await getDeviceId();
+        console.log(deviceId);
         const fcmToken = getFcmTokenFromCookies();
 
         headers = {
