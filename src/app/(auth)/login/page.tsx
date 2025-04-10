@@ -3,21 +3,24 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/Input";
 // import { withGuest } from "@/hoc/withGuest";
-import { AppDispatch, RootState } from "@/redux/store";
-import { login } from "@/redux/thunks/auth";
+import { AppDispatch } from "@/redux/store";
 import { profile } from "@/redux/thunks/profile";
-import { LoginRequest } from "@/types/auth.login";
+import { ENDPOINTS } from "@/service/api.endpoint";
+import apiService from "@/service/api.service";
+import { LoginRequest, LoginResponse } from "@/types/auth.login";
+import { ProfileResponse } from "@/types/profile";
+import { setAccessToken, setRefreshToken } from "@/utils/token";
 import { User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { toast } from "sonner";
 
 const LoginPage: React.FC = () => {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
-  const { status } = useSelector((state: RootState) => state.auth);
+  // const { status } = useSelector((state: RootState) => state.auth);
 
   const [loginData, setLoginData] = useState<LoginRequest>({
     username: "",
@@ -48,14 +51,19 @@ const LoginPage: React.FC = () => {
 
     try {
       // showLoading();
-      const result = await dispatch(login(loginData)).unwrap();
-      if (result.status === "success") {
-        const getProfile = await dispatch(profile()).unwrap();
-        if (getProfile.status === "success") {
+      const result: LoginResponse = await apiService.post<LoginResponse>(
+        ENDPOINTS.AUTH.LOGIN,
+        loginData
+      );
+      if (result.status === "success" && result.data) {
+        setAccessToken(result.data?.access_token);
+        setRefreshToken(result.data.refresh_token);
+        const profileRes: ProfileResponse = await dispatch(profile()).unwrap();
+        if (profileRes.status === "success") {
           toast.success("Đăng nhập thành công!");
           router.replace("/");
         } else {
-          toast.error(result.message || "Lấy thông tin user thất bại!");
+          toast.error(profileRes.message || "Đăng nhập thất bại!");
         }
       } else {
         // Hiển thị chính xác message lỗi trả về từ API
@@ -129,8 +137,8 @@ const LoginPage: React.FC = () => {
           Forgot password?
         </a>
       </div>
-      <Button className="w-full" type="submit" disabled={status === "loading"}>
-        {status === "loading" ? "ĐANG ĐĂNG NHẬP..." : "ĐĂNG NHẬP"}
+      <Button className="w-full" type="submit">
+        ĐĂNG NHẬP
       </Button>
       <span className="block my-1 text-center text-gray-500">or</span>
       <Link href="/register">

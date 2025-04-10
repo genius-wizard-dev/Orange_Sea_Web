@@ -52,6 +52,7 @@ export async function middleware(request: NextRequest) {
   // Redirect to homepage if already logged in and trying to access auth pages
   if (token && isProtectedAuthPage) {
     console.log("🚫 Đã login → Redirect");
+
     return NextResponse.redirect(new URL("/", request.url));
   }
 
