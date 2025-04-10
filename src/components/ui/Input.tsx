@@ -18,7 +18,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 		const StartIcon = startIcon;
 		const EndIcon = endIcon;
 		const { className: iconClassName, ...iconRest } = iconProps;
-		const inputClassNames = "flex h-10 w-full rounded-md border border-input bg-background py-2 px-10 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50";
+		const inputClassNames = "flex h-10 w-full rounded-md border border-input bg-background py-2 px-4 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50";
 
 		if (type === "password") {
 			return (
@@ -35,6 +35,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 						type={!show ? type : "text"}
 						className={cn(
 							inputClassNames,
+							'pe-10',
+							'ps-10',
 							className
 						)}
 						ref={ref}
