@@ -92,7 +92,6 @@ export const setAccessToken = (token: string, expires = 7): void => {
 export const getAccessToken = (): string | null => {
   // Skip on server
   if (isServer()) return null;
-
   return Cookies.get(ACCESS_TOKEN_KEY) || null;
 };
 
