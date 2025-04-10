@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/Input";
 // import { withGuest } from "@/hoc/withGuest";
 import { AppDispatch, RootState } from "@/redux/store";
 import { login } from "@/redux/thunks/auth";
+import { profile } from "@/redux/thunks/profile";
 import { LoginRequest } from "@/types/auth.login";
 import { User } from "lucide-react";
 import Link from "next/link";
@@ -49,8 +50,13 @@ const LoginPage: React.FC = () => {
       // showLoading();
       const result = await dispatch(login(loginData)).unwrap();
       if (result.status === "success") {
-        toast.success("Đăng nhập thành công!");
-        router.replace("/");
+        const getProfile = await dispatch(profile()).unwrap();
+        if (getProfile.status === "success") {
+          toast.success("Đăng nhập thành công!");
+          router.replace("/");
+        } else {
+          toast.error(result.message || "Lấy thông tin user thất bại!");
+        }
       } else {
         // Hiển thị chính xác message lỗi trả về từ API
         toast.error(result.message || "Đăng nhập thất bại!");
