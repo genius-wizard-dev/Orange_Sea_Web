@@ -5,7 +5,7 @@ import StartSidebar from '@/components/sidebar/StartSidebar';
 import { Input } from '@/components/ui/Input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search } from 'lucide-react';
-import React, { use, useState, useEffect, useRef, MutableRefObject } from 'react';
+import React, { useState } from 'react';
 import Conversation from '@/components/conversation/Conversation';
 import { ChatBubble } from '@/components/conversation/ChatBubble';
 import { ChatInput } from '@/components/conversation/ChatInput';
@@ -71,21 +71,6 @@ const Page: React.FC = () => {
 	]
 	const [conversationActiveState, setConversationActiveState] = useState<number>(demoDataConversation[0].id);
 	const [text, setText] = React.useState<string>("");
-	const [isEmojiPickerOpen, setIsEmojiPickerOpen] = React.useState<boolean>(false);
-	function useChatScroll<T>(
-		dep: T,
-		options: boolean | ScrollIntoViewOptions,
-	): MutableRefObject<HTMLDivElement | null> {
-		const ref = useRef<HTMLDivElement>(null);
-		useEffect(() => {
-			if (ref.current) {
-				ref.current.scrollIntoView(options);
-			}
-		}, [dep]);
-		return ref;
-	}
-
-	const ref = useChatScroll(demoDataConversation, false);
 	return (
 		<div className="pt-[60px] flex gap-0 h-screen w-screen overflow-hidden">
 			<StartSidebar>
@@ -119,7 +104,7 @@ const Page: React.FC = () => {
 				</div>
 			</StartSidebar>
 			<div className="flex flex-col w-full h-full overflow-hidden justify-end bg-white/30">
-				<div className="overflow-y-auto p-4 w-full" ref={useChatScroll(conversationActiveState, { behavior: "smooth", block: "end" })}>
+				<div className="overflow-y-auto p-4 w-full">
 
 					<ChatBubble
 						type="text"
