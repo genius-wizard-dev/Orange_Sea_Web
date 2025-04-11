@@ -8,6 +8,8 @@ export const ENDPOINTS = {
     LOGOUT: `${BASE_ENDPOINT}/auth/logout`,
     IS_REGISTER: `${BASE_ENDPOINT}/auth/is-register`,
     VERIFY_OTP: `${BASE_ENDPOINT}/auth/verify-otp`,
+    FORGOT: `${BASE_ENDPOINT}/auth/forgot-password`,
+    RESET: `${BASE_ENDPOINT}/auth/reset-password`,
   },
   PROFILE: {
     ME: `${BASE_ENDPOINT}/profile/me`,

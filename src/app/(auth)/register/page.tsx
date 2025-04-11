@@ -3,7 +3,7 @@ import React, { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/Input";
+import { Input } from "@/components/ui/input";
 import { ENDPOINTS } from "@/service/api.endpoint";
 import apiService from "@/service/api.service";
 import { RegisterRequest, RegisterRespone } from "@/types/auth.register";
