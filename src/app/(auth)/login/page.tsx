@@ -1,7 +1,6 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/Input";
+import { Input } from "@/components/ui/input";
 // import { withGuest } from "@/hoc/withGuest";
 import { AppDispatch } from "@/redux/store";
 import { profile } from "@/redux/thunks/profile";
@@ -20,7 +19,7 @@ import { toast } from "sonner";
 const LoginPage: React.FC = () => {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
-  // const { status } = useSelector((state: RootState) => state.auth);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const [loginData, setLoginData] = useState<LoginRequest>({
     username: "",
@@ -38,19 +37,8 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate form inputs
-    if (!loginData.username.trim()) {
-      toast.error("Vui lòng nhập tên đăng nhập!");
-      return;
-    }
-
-    if (!loginData.password.trim()) {
-      toast.error("Vui lòng nhập mật khẩu!");
-      return;
-    }
-
     try {
-      // showLoading();
+      setLoading(true);
       const result: LoginResponse = await apiService.post<LoginResponse>(
         ENDPOINTS.AUTH.LOGIN,
         loginData
@@ -61,6 +49,10 @@ const LoginPage: React.FC = () => {
         const profileRes: ProfileResponse = await dispatch(profile()).unwrap();
         if (profileRes.status === "success") {
           toast.success("Đăng nhập thành công!");
+          setLoginData({
+            username: "",
+            password: "",
+          });
           router.replace("/");
         } else {
           toast.error(profileRes.message || "Đăng nhập thất bại!");
@@ -70,33 +62,23 @@ const LoginPage: React.FC = () => {
         toast.error(result.message || "Đăng nhập thất bại!");
       }
     } catch (error: any) {
-      // Xử lý nhiều trường hợp lỗi khác nhau
       if (typeof error === "object" && error !== null) {
-        // Nếu error là một đối tượng từ API response
         if (error.status === "fail" && error.message) {
           toast.error(error.message);
-        }
-        // Nếu là axios error với response data
-        else if (error.response?.data?.message) {
+        } else if (error.response?.data?.message) {
           toast.error(error.response.data.message);
-        }
-        // Nếu có thuộc tính message
-        else if (error.message) {
+        } else if (error.message) {
           toast.error(error.message);
-        }
-        // Fallback cho các trường hợp khác
-        else {
+        } else {
           toast.error("Đăng nhập thất bại. Vui lòng thử lại sau!");
         }
-      }
-      // Nếu error là string
-      else if (typeof error === "string") {
+      } else if (typeof error === "string") {
         toast.error(error);
-      }
-      // Fallback
-      else {
+      } else {
         toast.error("Lỗi kết nối server. Vui lòng thử lại sau!");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -124,21 +106,19 @@ const LoginPage: React.FC = () => {
         required
       />
       <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <Checkbox id="remember" />
-          <label
-            htmlFor="remember"
-            className="text-sm text-muted-foreground ml-2"
-          >
-            Keep me signed in on this device.
-          </label>
-        </div>
-        <a href="/reset" className="text-sm text-primary hover:underline">
+        <Link
+          href="/reset"
+          className="text-sm text-primary hover:underline ml-auto"
+        >
           Forgot password?
-        </a>
+        </Link>
       </div>
-      <Button className="w-full" type="submit">
-        ĐĂNG NHẬP
+      <Button
+        className="w-full"
+        type="submit"
+        disabled={loading || !loginData.username || !loginData.password}
+      >
+        {loading ? "ĐANG ĐĂNG NHẬP..." : "ĐĂNG NHẬP"}
       </Button>
       <span className="block my-1 text-center text-gray-500">or</span>
       <Link href="/register">
