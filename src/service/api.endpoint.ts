@@ -19,6 +19,6 @@ export const ENDPOINTS = {
     INFO: (id: number) => `${BASE_ENDPOINT}/account/${id}`,
     GET_BY_USERNAME: (username: string) =>
       `${BASE_ENDPOINT}/account/username/${username}`,
-    PASSWORD: (id: number) => `${BASE_ENDPOINT}/account/${id}/password`,
+    PASSWORD: (id: string) => `${BASE_ENDPOINT}/account/${id}/password`,
   },
 };

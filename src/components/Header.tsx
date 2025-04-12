@@ -21,11 +21,13 @@ import { Bell } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { useSelector } from "react-redux";
+import ChangePasswordDialog from "./ChangePasswordDialog";
 import LoadingSpinner from "./LoadingSpinner";
 import ProfileDialog from "./ProfileDialog";
 
 const TopNavigation: React.FC = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { profile: userProfile } = useSelector(
@@ -41,6 +43,11 @@ const TopNavigation: React.FC = () => {
   const handleProfileOpenChange = (open: boolean) => {
     setIsProfileOpen(open);
   };
+
+  const handleChangePasswordOpenChange = (open: boolean) => {
+    setIsChangePasswordOpen(open);
+  };
+
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
@@ -57,6 +64,11 @@ const TopNavigation: React.FC = () => {
     } finally {
       setIsLoggingOut(false);
     }
+  };
+
+  const handleChangePassword = () => {
+    setIsChangePasswordOpen(true);
+    setIsDropdownOpen(false);
   };
 
   if (isLoggingOut) {
@@ -108,6 +120,9 @@ const TopNavigation: React.FC = () => {
                   <DropdownMenuItem onClick={handleProfileClick}>
                     Profile
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleChangePassword}>
+                    Change Password
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout}>
                     Logout
                   </DropdownMenuItem>
@@ -128,6 +143,10 @@ const TopNavigation: React.FC = () => {
       <ProfileDialog
         open={isProfileOpen}
         onOpenChange={handleProfileOpenChange}
+      />
+      <ChangePasswordDialog
+        open={isChangePasswordOpen}
+        onOpenChange={handleChangePasswordOpenChange}
       />
     </>
   );
