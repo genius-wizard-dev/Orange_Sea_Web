@@ -1,6 +1,6 @@
 "use client";
 
-import { AppDispatch, RootState, store } from "@/redux/store";
+import { AppDispatch, store } from "@/redux/store";
 import { profile } from "@/redux/thunks/profile";
 import { getAccessToken } from "@/utils/token";
 import { useEffect, useState } from "react";
@@ -34,8 +34,7 @@ function InnerInitializer({ children }: { children: React.ReactNode }) {
     return <LoadingSpinner />;
   }
 
-  // Only show children when profile loading was successful
-  return profileStatus === "succeeded" ? <>{children}</> : null;
+  return <>{children}</>;
 }
 
 export default function MainLayout({
