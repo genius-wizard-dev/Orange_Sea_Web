@@ -1,19 +1,16 @@
-'use client';
+"use client";
 
-import EndSidebar from '@/components/sidebar/EndSidebar';
-import StartSidebar from '@/components/sidebar/StartSidebar';
-import { Input } from '@/components/ui/Input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search } from 'lucide-react';
-import React, { useState } from 'react';
-import Conversation from '@/components/conversation/Conversation';
-import { ChatBubble } from '@/components/conversation/ChatBubble';
-import { ChatInput } from '@/components/conversation/ChatInput';
-
-
+import { ChatBubble } from "@/components/conversation/ChatBubble";
+import { ChatInput } from "@/components/conversation/ChatInput";
+import Conversation from "@/components/conversation/Conversation";
+import EndSidebar from "@/components/sidebar/EndSidebar";
+import StartSidebar from "@/components/sidebar/StartSidebar";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Search } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
 
 const Page: React.FC = () => {
-
 	const demoDataConversation = [
 		{
 			id: 1,
@@ -22,7 +19,7 @@ const Page: React.FC = () => {
 			time: "2h",
 			unreadCount: 1,
 			online: true,
-			avatarUrl: "https://i.pravatar.cc/150?img=3"
+			avatarUrl: "https://i.pravatar.cc/150?img=3",
 		},
 		{
 			id: 2,
@@ -31,7 +28,7 @@ const Page: React.FC = () => {
 			time: "1h",
 			unreadCount: 0,
 			online: false,
-			avatarUrl: "https://i.pravatar.cc/150?img=4"
+			avatarUrl: "https://i.pravatar.cc/150?img=4",
 		},
 		{
 			id: 3,
@@ -40,7 +37,7 @@ const Page: React.FC = () => {
 			time: "30m",
 			unreadCount: 2,
 			online: true,
-			avatarUrl: "https://i.pravatar.cc/150?img=5"
+			avatarUrl: "https://i.pravatar.cc/150?img=5",
 		},
 		{
 			id: 4,
@@ -49,7 +46,7 @@ const Page: React.FC = () => {
 			time: "15m",
 			unreadCount: 0,
 			online: false,
-			avatarUrl: "https://i.pravatar.cc/150?img=6"
+			avatarUrl: "https://i.pravatar.cc/150?img=6",
 		},
 		{
 			id: 5,
@@ -58,7 +55,7 @@ const Page: React.FC = () => {
 			time: "10m",
 			unreadCount: 0,
 			online: true,
-			avatarUrl: "https://i.pravatar.cc/150?img=7"
+			avatarUrl: "https://i.pravatar.cc/150?img=7",
 		},
 		{
 			id: 6,
@@ -67,18 +64,33 @@ const Page: React.FC = () => {
 			time: "5m",
 			unreadCount: 0,
 			online: false,
-			avatarUrl: "https://i.pravatar.cc/150?img=8"
-		}
-	]
-	const [conversationActiveState, setConversationActiveState] = useState<number>(demoDataConversation[0].id);
-	const [text, setText] = React.useState<string>("");
+			avatarUrl: "https://i.pravatar.cc/150?img=8",
+		},
+	];
+
+	const [conversationActiveState, setConversationActiveState] =
+		useState<number>(demoDataConversation[0].id);
+	const [text, setText] = useState<string>("");
+	const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState<boolean>(false);
+
+	const bottomRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+	}, [conversationActiveState, text]);
+
 	return (
 		<div className="pt-[60px] flex gap-0 h-screen w-screen overflow-hidden">
 			<StartSidebar>
 				<div className="flex items-center justify-between mb-4 gap-2">
 					<Tabs defaultValue="all" className="w-[400px]">
 						<div className="flex items-center justify-between mb-4 gap-2">
-							<Input className="w-full" type="text" placeholder="Search..." startIcon={Search} />
+							<Input
+								className="w-full"
+								type="text"
+								placeholder="Search..."
+								startIcon={Search}
+							/>
 							<TabsList>
 								<TabsTrigger value="all">All</TabsTrigger>
 								<TabsTrigger value="password">Unread</TabsTrigger>
@@ -104,9 +116,9 @@ const Page: React.FC = () => {
 					</Tabs>
 				</div>
 			</StartSidebar>
+
 			<div className="flex flex-col w-full h-full overflow-hidden justify-end bg-white/30">
 				<div className="overflow-y-auto p-4 w-full">
-
 					<ChatBubble
 						type="text"
 						content="Tin nhắn thường"
@@ -125,7 +137,13 @@ const Page: React.FC = () => {
 
 					<ChatBubble
 						type="image"
-						content={["https://i.pravatar.cc/150?img=3", "https://i.pravatar.cc/150?img=4", "https://i.pravatar.cc/150?img=5", "https://i.pravatar.cc/150?img=6", "https://i.pravatar.cc/150?img=7"]}
+						content={[
+							"https://i.pravatar.cc/150?img=3",
+							"https://i.pravatar.cc/150?img=4",
+							"https://i.pravatar.cc/150?img=5",
+							"https://i.pravatar.cc/150?img=6",
+							"https://i.pravatar.cc/150?img=7",
+						]}
 						time="1 giờ"
 					/>
 
@@ -143,15 +161,10 @@ const Page: React.FC = () => {
 						time="5 giờ"
 					/>
 
-					<ChatBubble
-						type="revoked"
-						content=""
-						time="6 giờ"
-						isOwn={true}
-					/>
+					<ChatBubble type="revoked" content="" time="6 giờ" isOwn={true} />
 
-
-
+					{/* 👇 Thẻ để scroll đến cuối */}
+					<div ref={bottomRef} />
 				</div>
 
 				<ChatInput
@@ -159,18 +172,14 @@ const Page: React.FC = () => {
 					onChange={setText}
 					onSend={() => {
 						console.log("Gửi tin:", text);
-						setText("");
+						setText(""); // Giả lập gửi xong thì scroll xuống
 					}}
 					onAttach={() => console.log("Đính kèm file")}
 					onEmoji={() => console.log("Hiện emoji picker")}
 				/>
-
 			</div>
 
-			<EndSidebar>
-
-			</EndSidebar>
-
+			<EndSidebar />
 		</div>
 	);
 };
