@@ -11,6 +11,7 @@ export const ProfileSchema = z.object({
   email: z.string().default(""),
   username: z.string().default(""),
   isSetup: z.boolean().default(false),
+  accountID: z.string().default(""),
 });
 
 // Type derived from the schema

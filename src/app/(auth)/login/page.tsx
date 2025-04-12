@@ -1,7 +1,6 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-// import { withGuest } from "@/hoc/withGuest";
 import { AppDispatch } from "@/redux/store";
 import { profile } from "@/redux/thunks/profile";
 import { ENDPOINTS } from "@/service/api.endpoint";
