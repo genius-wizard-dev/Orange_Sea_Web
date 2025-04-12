@@ -8,6 +8,8 @@ export const ProfileSchema = z.object({
   bio: z.string().default(""),
   phone: z.string().default(""),
   birthday: z.string().nullable().default(null),
+  email: z.string().default(""),
+  username: z.string().default(""),
   isSetup: z.boolean().default(false),
 });
 
@@ -22,6 +24,8 @@ export const UpdateProfileSchema = z.object({
   bio: z.string().optional(),
   phone: z.string().optional(),
   birthday: z.string().nullable().optional(),
+  email: z.string().optional(),
+  username: z.string().optional(),
 });
 
 export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
