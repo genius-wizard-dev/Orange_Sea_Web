@@ -2,47 +2,13 @@ import { ApiService } from "@/types/api.service";
 import ApiClient from "@/utils/axios";
 import { getDeviceId } from "@/utils/fingerprint";
 import {
-  getAccessToken,
-  getAccessTokenSafe,
   getFcmTokenFromCookies,
   getFcmTokenFromServerCookies,
   isServer,
 } from "@/utils/token";
-import { InternalAxiosRequestConfig } from "axios";
 
 // Get the preconfigured axios instance
 const axiosInstance = ApiClient.getInstance();
-
-// Add authorization token to requests
-axiosInstance.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    // Use safe version of getAccessToken that works in both client and server
-    const token = isServer()
-      ? getAccessTokenSafe(config.headers?.cookie as string)
-      : getAccessToken();
-
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Handle response and potential token refresh
-axiosInstance.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  async (error) => {
-    // Handle 401 (Unauthorized) - token expiration
-    if (error.response && error.response.status === 401) {
-    }
-    return Promise.reject(error);
-  }
-);
 
 class ApiServiceImpl implements ApiService {
   private async request<T>(

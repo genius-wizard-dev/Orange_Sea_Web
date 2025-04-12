@@ -41,25 +41,34 @@ export const getFcmTokenFromServerCookies = (cookieHeader?: string): string => {
   }
 };
 
-// Server-safe function to get access token
-export const getAccessTokenSafe = (cookieHeader?: string): string | null => {
-  if (!isServer()) return getAccessToken();
+// Server-safe function to get access token or refresh token
+export const getAccessTokenSafe = (
+  cookieHeader?: string,
+  getRefresh = false
+): string | null => {
+  if (!isServer()) return getRefresh ? getRefreshToken() : getAccessToken();
 
   try {
     if (cookieHeader) {
-      const accessCookie = cookieHeader
+      const tokenKey = getRefresh ? REFRESH_TOKEN_KEY : ACCESS_TOKEN_KEY;
+      const tokenCookie = cookieHeader
         .split(";")
-        .find((c) => c.trim().startsWith(`${ACCESS_TOKEN_KEY}=`));
+        .find((c) => c.trim().startsWith(`${tokenKey}=`));
 
-      if (accessCookie) {
-        return accessCookie.split("=")[1].trim();
+      if (tokenCookie) {
+        return tokenCookie.split("=")[1].trim();
       }
     }
 
     // Don't try to use server cookies API directly
     return null;
   } catch (error) {
-    console.error("Error getting access token from server cookies:", error);
+    console.error(
+      `Error getting ${
+        getRefresh ? "refresh" : "access"
+      } token from server cookies:`,
+      error
+    );
     return null;
   }
 };

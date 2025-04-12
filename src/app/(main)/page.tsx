@@ -3,13 +3,12 @@
 import { ChatBubble } from "@/components/conversation/ChatBubble";
 import { ChatInput } from "@/components/conversation/ChatInput";
 import Conversation from "@/components/conversation/Conversation";
-import LoadingSpinner from "@/components/LoadingSpinner";
 import EndSidebar from "@/components/sidebar/EndSidebar";
 import StartSidebar from "@/components/sidebar/StartSidebar";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { MutableRefObject, useEffect, useRef, useState } from "react";
 
 const Page: React.FC = () => {
   const demoDataConversation = [
@@ -68,51 +67,25 @@ const Page: React.FC = () => {
       avatarUrl: "https://i.pravatar.cc/150?img=8",
     },
   ];
-
-  const [isLoading, setIsLoading] = useState(true);
-
   const [conversationActiveState, setConversationActiveState] =
     useState<number>(demoDataConversation[0].id);
-  const [text, setText] = useState<string>("");
-
-  const bottomRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [conversationActiveState, text]);
-
-  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState<boolean>(false);
-  const chatScrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // Simulate loading data
-    const loadData = async () => {
-      try {
-        // Add your actual data fetching logic here
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
-      } catch (error) {
-        console.error("Error loading data:", error);
-      } finally {
-        setIsLoading(false);
+  const [text, setText] = React.useState<string>("");
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] =
+    React.useState<boolean>(false);
+  function useChatScroll<T>(
+    dep: T,
+    options: boolean | ScrollIntoViewOptions
+  ): MutableRefObject<HTMLDivElement | null> {
+    const ref = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+      if (ref.current) {
+        ref.current.scrollIntoView(options);
       }
-    };
-
-    loadData();
-  }, []);
-
-  useEffect(() => {
-    if (chatScrollRef.current) {
-      chatScrollRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "end",
-      });
-    }
-  }, [conversationActiveState]);
-
-  if (isLoading) {
-    return <LoadingSpinner />;
+    }, [dep]);
+    return ref;
   }
 
+  const ref = useChatScroll(demoDataConversation, false);
   return (
     <div className="pt-[60px] flex gap-0 h-screen w-screen overflow-hidden">
       <StartSidebar>
@@ -151,7 +124,13 @@ const Page: React.FC = () => {
         </div>
       </StartSidebar>
       <div className="flex flex-col w-full h-full overflow-hidden justify-end bg-white/30">
-        <div className="overflow-y-auto p-4 w-full" ref={chatScrollRef}>
+        <div
+          className="overflow-y-auto p-4 w-full"
+          ref={useChatScroll(conversationActiveState, {
+            behavior: "smooth",
+            block: "end",
+          })}
+        >
           <ChatBubble
             type="text"
             content="Tin nhắn thường"
@@ -195,7 +174,6 @@ const Page: React.FC = () => {
           />
 
           <ChatBubble type="revoked" content="" time="6 giờ" isOwn={true} />
-          <div ref={bottomRef} />
         </div>
 
         <ChatInput
@@ -210,7 +188,7 @@ const Page: React.FC = () => {
         />
       </div>
 
-      <EndSidebar />
+      <EndSidebar></EndSidebar>
     </div>
   );
 };
