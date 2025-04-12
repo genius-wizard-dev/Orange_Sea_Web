@@ -4,27 +4,34 @@ import { AppDispatch, RootState, store } from "@/redux/store";
 import { profile } from "@/redux/thunks/profile";
 import { getAccessToken } from "@/utils/token";
 import { useEffect, useState } from "react";
-import { Provider, useDispatch, useSelector } from "react-redux";
+import { Provider, useDispatch } from "react-redux";
+import LoadingSpinner from "./LoadingSpinner";
 
 function InnerInitializer({ children }: { children: React.ReactNode }) {
   const dispatch = useDispatch<AppDispatch>();
   const [initialized, setInitialized] = useState(false);
-  const profileStatus = useSelector((state: RootState) => state.profile.status);
-  // return <>{children}</>
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
     const fetchProfile = async () => {
-      const hasToken = getAccessToken();
-      if (hasToken) {
-        await dispatch(profile());
+      try {
+        const hasToken = getAccessToken();
+        if (hasToken) {
+          await dispatch(profile());
+        }
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+      } finally {
+        setIsLoading(false);
+        setInitialized(true);
       }
-      setInitialized(true);
     };
 
     fetchProfile();
   }, [dispatch]);
 
-  if (!initialized) {
-    return null;
+  if (!initialized || isLoading) {
+    return <LoadingSpinner />;
   }
 
   // Only show children when profile loading was successful

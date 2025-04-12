@@ -75,6 +75,11 @@ class ApiServiceImpl implements ApiService {
         }
       }
 
+      // Nếu data là FormData, không set Content-Type header
+      if (data instanceof FormData) {
+        delete headers["Content-Type"];
+      }
+
       const response = await axiosInstance.request<T>({
         method,
         url: uri,
