@@ -17,16 +17,19 @@ import {
   removeAccessToken,
   removeRefreshToken,
 } from "@/utils/token";
-import { Bell } from "lucide-react";
+import { Bell, User, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { useSelector } from "react-redux";
 import ChangePasswordDialog from "./ChangePasswordDialog";
 import LoadingSpinner from "./LoadingSpinner";
 import ProfileDialog from "./ProfileDialog";
+import FriendDialog from "./user/FriendDialog";
+import UserProfileDialog from "./user/UserProfileDialog";
 
 const TopNavigation: React.FC = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isFriendOpen, setIsFriendOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -43,6 +46,15 @@ const TopNavigation: React.FC = () => {
   const handleProfileOpenChange = (open: boolean) => {
     setIsProfileOpen(open);
   };
+
+  const handleFriendClick = () => {
+    setIsFriendOpen(true);
+    setIsDropdownOpen(false);
+  }
+
+  const handleFriendOpenChange = (open: boolean) => {
+    setIsFriendOpen(open);
+  }
 
   const handleChangePasswordOpenChange = (open: boolean) => {
     setIsChangePasswordOpen(open);
@@ -93,6 +105,14 @@ const TopNavigation: React.FC = () => {
           </Button>
           {isLoggedIn ? (
             <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative"
+                onClick={handleFriendClick}
+              >
+                <Users className="text-gray-800" />
+              </Button>
               <Button variant="ghost" size="icon">
                 <Bell className="text-gray-800" />
               </Button>
@@ -147,6 +167,15 @@ const TopNavigation: React.FC = () => {
       <ChangePasswordDialog
         open={isChangePasswordOpen}
         onOpenChange={handleChangePasswordOpenChange}
+      />
+      <FriendDialog
+        isOpen={isFriendOpen}
+        onOpenChange={handleFriendOpenChange}
+      />
+      <UserProfileDialog
+        isOpen={false}
+        onOpenChange={() => {}}
+        userProfile={userProfile}
       />
     </>
   );

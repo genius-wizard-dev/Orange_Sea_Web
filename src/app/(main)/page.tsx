@@ -5,11 +5,14 @@ import { ChatInput } from "@/components/conversation/ChatInput";
 import Conversation from "@/components/conversation/Conversation";
 import EndSidebar from "@/components/sidebar/EndSidebar";
 import StartSidebar from "@/components/sidebar/StartSidebar";
+import UserProfileDialog from "@/components/user/UserProfileDialog";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, MoreVertical, Phone, Video, ArrowBigLeft, ChevronLeft } from "lucide-react";
+import { Search, MoreVertical, Phone, Video, ArrowBigLeft, ChevronLeft, User } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 
 
 const Page: React.FC = () => {
@@ -70,11 +73,14 @@ const Page: React.FC = () => {
 		},
 	];
 
+	const dispatch = useDispatch();
+	const {profile: userProfile} = useSelector((state: RootState) => state.profile);
+
 	const [conversationActiveState, setConversationActiveState] =
 		useState<number>(demoDataConversation[0].id);
 	const [text, setText] = useState<string>("");
 	const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState<boolean>(false);
-	const [isEndSidebarOpen, setIsEndSidebarOpen] = useState<boolean>(true);
+	const [isEndSidebarOpen, setIsEndSidebarOpen] = useState<boolean>(false);
 	const [isChatGroundOpen, setIsChatGroundOpen] = useState<boolean>(false);
 
 	const bottomRef = useRef<HTMLDivElement>(null);
@@ -237,6 +243,12 @@ const Page: React.FC = () => {
 			>
 
 			</EndSidebar>
+
+			<UserProfileDialog
+				isOpen={false}
+				onOpenChange={() => {}}
+				userProfile={userProfile}
+			></UserProfileDialog>
 		</div>
 	);
 };
