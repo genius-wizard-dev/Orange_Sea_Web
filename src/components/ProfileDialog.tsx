@@ -27,7 +27,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 
 // Hàm chuyển đổi định dạng ngày tháng
-const formatDate = (dateString: string | null) => {
+const formatDate = (dateString: string | null | undefined) => {
   if (!dateString) return "Chưa cập nhật";
   const date = new Date(dateString);
   return date.toLocaleDateString("vi-VN", {
@@ -60,6 +60,11 @@ const ProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [errors, setErrors] = useState<{
+    name?: string;
+    phone?: string;
+    birthday?: string;
+  }>({});
 
   useEffect(() => {
     if (userProfile) {
@@ -80,12 +85,87 @@ const ProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
     }
   }, [selectedFile]);
 
+  const validateName = (name: string): string | undefined => {
+    if (name.length < 2) {
+      return "Tên phải có ít nhất 2 ký tự";
+    }
+    if (
+      !/^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂẾưăạảấầẩẫậắằẳẵặẹẻẽềềểếỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵýỷỹ\s]+$/.test(
+        name
+      )
+    ) {
+      return "Tên chỉ nên chứa chữ cái tiếng Việt và Latin";
+    }
+    return undefined;
+  };
+
+  const validatePhone = (phone: string): string | undefined => {
+    if (phone === "") return undefined;
+    if (!/^(0|\+84)[0-9]{9}$/.test(phone)) {
+      return "Số điện thoại phải là số điện thoại Việt Nam hợp lệ (0xxxxxxxxx hoặc +84xxxxxxxxx)";
+    }
+    return undefined;
+  };
+
+  const validateBirthday = (
+    birthday: string | null | undefined
+  ): string | undefined => {
+    if (!birthday) return undefined;
+
+    const birthDate = new Date(birthday);
+    const today = new Date();
+
+    // Calculate age
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDifference = today.getMonth() - birthDate.getMonth();
+
+    // Adjust age if birthday hasn't occurred yet this year
+    if (
+      monthDifference < 0 ||
+      (monthDifference === 0 && today.getDate() < birthDate.getDate())
+    ) {
+      age--;
+    }
+
+    if (age < 12) {
+      return "Bạn phải đủ 12 tuổi trở lên";
+    }
+
+    return undefined;
+  };
+
   const handleChange = (field: keyof Profile, value: string) => {
     if (formData) {
       setFormData({
         ...formData,
         [field]: value,
       });
+
+      // Clear error when user starts typing
+      if (errors[field as keyof typeof errors]) {
+        setErrors({
+          ...errors,
+          [field]: undefined,
+        });
+      }
+
+      // Validate on change
+      if (field === "name") {
+        const nameError = validateName(value);
+        if (nameError) {
+          setErrors({ ...errors, name: nameError });
+        }
+      } else if (field === "phone") {
+        const phoneError = validatePhone(value);
+        if (phoneError) {
+          setErrors({ ...errors, phone: phoneError });
+        }
+      } else if (field === "birthday") {
+        const birthdayError = validateBirthday(value);
+        if (birthdayError) {
+          setErrors({ ...errors, birthday: birthdayError });
+        }
+      }
     }
   };
 
@@ -99,20 +179,36 @@ const ProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
   const handleSave = async () => {
     if (!formData) return;
 
+    // Validate all fields
+    const newErrors = {
+      name: validateName(formData.name),
+      phone: validatePhone(formData.phone || ""),
+      birthday: validateBirthday(formData.birthday),
+    };
+
+    setErrors(newErrors);
+
+    if (Object.values(newErrors).some((error) => error !== undefined)) {
+      const firstError = Object.values(newErrors).find(
+        (error) => error !== undefined
+      );
+      if (firstError) {
+        toast.error(firstError);
+      }
+      return;
+    }
+
     try {
       setIsSaving(true);
 
-      // Tạo FormData để gửi cả file và dữ liệu
       const formDataToSend = new FormData();
 
-      // Thêm các trường dữ liệu
       Object.entries(formData).forEach(([key, value]) => {
         if (value !== null && value !== undefined) {
           formDataToSend.append(key, value.toString());
         }
       });
 
-      // Thêm file nếu có
       if (selectedFile) {
         formDataToSend.append("avatar", selectedFile);
       }
@@ -125,7 +221,6 @@ const ProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
         setIsEditing(false);
         setSelectedFile(null);
         setPreviewUrl(null);
-        // Fetch lại thông tin profile sau khi cập nhật thành công
         await dispatch(profile());
       } else {
         toast.error(result.message || "Cập nhật thông tin thất bại");
@@ -271,7 +366,11 @@ const ProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
                       value={formData?.name || ""}
                       onChange={(e) => handleChange("name", e.target.value)}
                       placeholder="Nhập tên hiển thị"
+                      className={errors.name ? "border-red-500" : ""}
                     />
+                    {errors.name && (
+                      <p className="text-sm text-red-500">{errors.name}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Giới thiệu</label>
@@ -287,7 +386,11 @@ const ProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
                       value={formData?.phone || ""}
                       onChange={(e) => handleChange("phone", e.target.value)}
                       placeholder="Nhập số điện thoại"
+                      className={errors.phone ? "border-red-500" : ""}
                     />
+                    {errors.phone && (
+                      <p className="text-sm text-red-500">{errors.phone}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Ngày sinh</label>
@@ -295,7 +398,11 @@ const ProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
                       type="date"
                       value={formatDateForInput(formData?.birthday || null)}
                       onChange={(e) => handleChange("birthday", e.target.value)}
+                      className={errors.birthday ? "border-red-500" : ""}
                     />
+                    {errors.birthday && (
+                      <p className="text-sm text-red-500">{errors.birthday}</p>
+                    )}
                   </div>
                 </div>
 
@@ -308,7 +415,13 @@ const ProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
                     <ArrowLeft className="h-4 w-4" />
                     Quay lại
                   </Button>
-                  <Button onClick={handleSave} disabled={isSaving}>
+                  <Button
+                    onClick={handleSave}
+                    disabled={
+                      isSaving ||
+                      Object.values(errors).some((error) => error !== undefined)
+                    }
+                  >
                     {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
                   </Button>
                 </div>
