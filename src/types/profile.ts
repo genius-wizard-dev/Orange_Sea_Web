@@ -3,11 +3,42 @@ import { z } from "zod";
 // Profile type definition
 export const ProfileSchema = z.object({
   id: z.string(),
-  name: z.string().default(""),
+  name: z.string()
+    .min(2, "Name must be at least 2 characters")
+    .refine(
+      (name) => /^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂẾưăạảấầẩẫậắằẳẵặẹẻẽềềểếỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵýỷỹ\s]+$/.test(name),
+      {
+        message: "Name should only contain Vietnamese and Latin characters"
+      }
+    )
+    .default(""),
   avatar: z.string().default(""),
   bio: z.string().default(""),
-  phone: z.string().default(""),
-  birthday: z.string().nullable().default(null),
+  phone: z.string()
+    .refine(
+      (phone) => phone === "" || /^(0|\+84)[0-9]{9}$/.test(phone),
+      {
+        message: "Phone number must be a valid Vietnamese phone number (0xxxxxxxxx or +84xxxxxxxxx)"
+      }
+    )
+    .default(""),
+  birthday: z.string().nullable().optional()
+  .refine(
+    (date) => {
+      if (!date) return true;
+      const birthDate = new Date(date);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        return age - 1 >= 12;
+      }
+      return age >= 12;
+    },
+    {
+      message: "You must be at least 12 years old"
+    }
+  ),
   email: z.string().default(""),
   username: z.string().default(""),
   isSetup: z.boolean().default(false),
@@ -20,11 +51,42 @@ export type Profile = z.infer<typeof ProfileSchema>;
 // Update profile schema (all fields optional except id)
 export const UpdateProfileSchema = z.object({
   id: z.string(),
-  name: z.string().optional(),
+  name: z.string()
+  .min(2, "Name must be at least 2 characters")
+  .refine(
+    (name) => /^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂẾưăạảấầẩẫậắằẳẵặẹẻẽềềểếỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵýỷỹ\s]+$/.test(name),
+    {
+      message: "Name should only contain Vietnamese and Latin characters"
+    }
+  )
+  .default(""),
   avatar: z.string().optional(),
   bio: z.string().optional(),
-  phone: z.string().optional(),
-  birthday: z.string().nullable().optional(),
+  phone: z.string()
+  .refine(
+    (phone) => phone === "" || /^(0|\+84)[0-9]{9}$/.test(phone),
+    {
+      message: "Phone number must be a valid Vietnamese phone number (0xxxxxxxxx or +84xxxxxxxxx)"
+    }
+  )
+  .default(""),
+  birthday: z.string().nullable().optional()
+    .refine(
+      (date) => {
+        if (!date) return true;
+        const birthDate = new Date(date);
+        const today = new Date();
+        const age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          return age - 1 >= 12;
+        }
+        return age >= 12;
+      },
+      {
+        message: "You must be at least 12 years old"
+      }
+    ),
   email: z.string().optional(),
   username: z.string().optional(),
 });
