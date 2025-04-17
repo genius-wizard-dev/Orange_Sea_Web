@@ -1,8 +1,9 @@
 "use client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import { Profile } from "@/types/profile";
+import { DialogTitle } from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Calendar,
@@ -15,7 +16,7 @@ import {
 
 interface UserProfileDialogProps {
   isOpen: boolean;
-  onOpenChange: () => void;
+  onOpenChange: any;
   userProfile: Profile | null;
 }
 
@@ -39,6 +40,9 @@ const UserProfileDialog: React.FC<UserProfileDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="flex flex-col w-full h-[90vh] max-w-[90vw] md:max-w-6xl overflow-hidden">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-semibold"></DialogTitle>
+        </DialogHeader>
         <div className="flex flex-col md:flex-row gap-6 h-full">
           {/* Cột trái - tĩnh */}
           <div className="md:w-1/3 w-full border-r pr-4 overflow-y-auto">
@@ -84,7 +88,7 @@ const UserProfileDialog: React.FC<UserProfileDialogProps> = ({
               <div className="flex items-center space-x-3">
                 <Calendar className="h-5 w-5 text-gray-500" />
                 <span className="text-sm">
-                  {formatDate(userProfile.birthday)}
+                  {formatDate(userProfile.birthday ?? null)}
                 </span>
               </div>
             </div>
@@ -101,8 +105,7 @@ const UserProfileDialog: React.FC<UserProfileDialogProps> = ({
                   transition={{ duration: 0.3 }}
                   className="space-y-6 py-4 px-2"
                 >
-                  {/* Thêm nội dung động ở đây */}
-                  Nội dung động bên phải, ví dụ như form, bài viết, tabs,...
+                  Nội dung động bên phải
                 </motion.div>
               </AnimatePresence>
             </div>

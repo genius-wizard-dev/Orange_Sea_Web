@@ -19,15 +19,23 @@ import {
 } from "@/utils/token";
 import { Bell, User, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
-import { useSelector } from "react-redux";
+import React, { use, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import ChangePasswordDialog from "./ChangePasswordDialog";
 import LoadingSpinner from "./LoadingSpinner";
 import ProfileDialog from "./ProfileDialog";
 import FriendDialog from "./user/FriendDialog";
 import UserProfileDialog from "./user/UserProfileDialog";
+import { closeModal, openModal } from "@/redux/slices/userModal";
+import { fetchUserProfile } from "@/redux/thunks/userModal";
+
+import { AppDispatch } from "@/redux/store";
 
 const TopNavigation: React.FC = () => {
+  
+  const dispatch: AppDispatch = useDispatch();
+  const { isModalOpen, modalProfile, status } = useSelector((state: RootState) => state.userModal);
+
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isFriendOpen, setIsFriendOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
@@ -51,6 +59,11 @@ const TopNavigation: React.FC = () => {
     setIsFriendOpen(true);
     setIsDropdownOpen(false);
   }
+
+  const handleProfileOpen = (id: string) => {
+    dispatch(openModal(id));
+    dispatch(fetchUserProfile(id));
+  };
 
   const handleFriendOpenChange = (open: boolean) => {
     setIsFriendOpen(open);
@@ -172,10 +185,11 @@ const TopNavigation: React.FC = () => {
         isOpen={isFriendOpen}
         onOpenChange={handleFriendOpenChange}
       />
+
       <UserProfileDialog
-        isOpen={false}
-        onOpenChange={() => {}}
-        userProfile={userProfile}
+        isOpen={isModalOpen}
+        onOpenChange={() => dispatch(closeModal())}
+        userProfile={modalProfile}
       />
     </>
   );

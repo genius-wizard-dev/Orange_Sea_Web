@@ -1,49 +1,56 @@
-import { Profile } from "@/types/profile";
-import { BaseState } from "@/types/store.redux";
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+// userModalSlice.ts
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { Profile } from '@/types/profile';
+import { fetchUserProfile } from '../thunks/userModal';
 
-interface UserModalState extends BaseState {
-	isOpen: boolean;
-	status: "idle" | "loading" | "succeeded" | "failed"; // Add status property
-	profile: Profile;
-	props: any; // Add props property
+interface UserModalState {
+  isModalOpen: boolean;
+  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  profileId: string | null;
+  modalProfile: Profile | null;
+  error: string | null;
 }
 
 const initialState: UserModalState = {
-	isOpen: false,
-	status: "idle",
-	profile: {} as Profile, // Initialize profile as an empty object
-	props: {}, // Initialize props as an empty object
-	error: null, // Initialize error as null
+  isModalOpen: false,
+  status: 'idle',
+  profileId: null,
+  modalProfile: null,
+  error: null,
 };
 
 const userModalSlice = createSlice({
-	name: "modal",
-	initialState,
-	reducers: {
-		openModal: (state, action: PayloadAction<{ profile: Profile; props?: any }>) => {
-			state.isOpen = true;
-			state.profile = action.payload.profile;
-			state.props = action.payload.props || {}; // Set props to an empty object if not provided
-		},
-		closeModal: (state) => {
-			state.isOpen = false;
-			state.profile = {} as Profile; // Reset profile to an empty object
-			state.props = {}; // Reset props to an empty object
-		},
-		setStatus: (state, action: PayloadAction<"idle" | "loading" | "succeeded" | "failed">) => {
-			state.status = action.payload;
-		},
-		setError: (state, action: PayloadAction<string | null>) => {
-			state.error = action.payload;
-		},
-		setProfile: (state, action: PayloadAction<Profile>) => {
-			state.profile = action.payload;
-		},
-		setProps: (state, action: PayloadAction<any>) => {
-			state.props = action.payload;
-		},
-	}
+  name: 'userModal',
+  initialState,
+  reducers: {
+    openModal: (state, action: PayloadAction<string>) => {
+      state.isModalOpen = true;
+      state.profileId = action.payload;
+      state.status = 'loading';
+    },
+    closeModal: (state) => {
+      state.isModalOpen = false;
+      state.modalProfile = null;
+      state.profileId = null;
+      state.status = 'idle';
+      state.error = null;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchUserProfile.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(fetchUserProfile.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.modalProfile = action.payload;
+      })
+      .addCase(fetchUserProfile.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.error.message ?? 'Đã có lỗi';
+      });
+  },
 });
 
+export const { openModal, closeModal } = userModalSlice.actions;
 export default userModalSlice.reducer;
