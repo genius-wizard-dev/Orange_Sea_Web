@@ -8,11 +8,12 @@ import StartSidebar from "@/components/sidebar/StartSidebar";
 import UserProfileDialog from "@/components/user/UserProfileDialog";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, MoreVertical, Phone, Video, ArrowBigLeft, ChevronLeft, User } from "lucide-react";
+import { Search, MoreVertical, Phone, Video, ArrowBigLeft, ChevronLeft, User, X, UserCheck, UserPlus } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
+import AddFriendDialog from "@/components/user/AddFriendDialog";
 
 
 const Page: React.FC = () => {
@@ -43,47 +44,29 @@ const Page: React.FC = () => {
 			unreadCount: 2,
 			online: true,
 			avatarUrl: "https://i.pravatar.cc/150?img=5",
-		},
-		{
-			id: 4,
-			name: "Bob Brown",
-			message: "Let's meet up!",
-			time: "15m",
-			unreadCount: 0,
-			online: false,
-			avatarUrl: "https://i.pravatar.cc/150?img=6",
-		},
-		{
-			id: 5,
-			name: "Charlie Green",
-			message: "Good morning!",
-			time: "10m",
-			unreadCount: 0,
-			online: true,
-			avatarUrl: "https://i.pravatar.cc/150?img=7",
-		},
-		{
-			id: 6,
-			name: "David White",
-			message: "See you later!",
-			time: "5m",
-			unreadCount: 0,
-			online: false,
-			avatarUrl: "https://i.pravatar.cc/150?img=8",
-		},
+		}
 	];
 
 	const dispatch = useDispatch();
-	const {profile: userProfile} = useSelector((state: RootState) => state.profile);
+	const { profile: userProfile } = useSelector((state: RootState) => state.profile);
 
 	const [conversationActiveState, setConversationActiveState] =
 		useState<number>(demoDataConversation[0].id);
 	const [text, setText] = useState<string>("");
+	const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
+
+	const [isSearchFriendOpen, setIsSearchFriendOpen] = useState(false);
 	const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState<boolean>(false);
 	const [isEndSidebarOpen, setIsEndSidebarOpen] = useState<boolean>(false);
 	const [isChatGroundOpen, setIsChatGroundOpen] = useState<boolean>(false);
 
 	const bottomRef = useRef<HTMLDivElement>(null);
+
+
+
+	const handleSearchFriendOpenChange = (open: boolean) => {
+		setIsSearchFriendOpen(open);
+	};
 
 	useEffect(() => {
 		bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -92,43 +75,101 @@ const Page: React.FC = () => {
 	return (
 		<div className="pt-[60px] flex gap-0 h-screen w-screen overflow-hidden">
 			<StartSidebar>
-				<div className="flex w-full items-center justify-between mb-4 gap-2">
-					<Tabs defaultValue="all" className="w-full">
-						<div className="flex items-center justify-between mb-4 gap-2">
-							<Input
-								className="w-full"
-								type="text"
-								placeholder="Search..."
-								startIcon={Search}
-							/>
-							<TabsList>
-								<TabsTrigger value="all">All</TabsTrigger>
-								<TabsTrigger value="password">Unread</TabsTrigger>
-							</TabsList>
-						</div>
-						<TabsContent value="all">
-							{demoDataConversation.map((conversation, index) => (
-								<Conversation
-									id={conversation.id}
-									key={index}
-									name={conversation.name}
-									message={conversation.message}
-									time={conversation.time}
-									unreadCount={conversation.unreadCount}
-									activeId={conversationActiveState}
-									online={conversation.online}
-									avatarUrl={conversation.avatarUrl}
-									onClick={() => {
-										setConversationActiveState(conversation.id)
-										setIsChatGroundOpen(true);
-									}}
-								/>
-							))}
-						</TabsContent>
-						<TabsContent value="password">Unread messages</TabsContent>
-					</Tabs>
-				</div>
-			</StartSidebar>
+				<div className="w-full">
+					<div className="flex items-center justify-between mb-4 gap-2">
+
+						<Input
+							className="w-full"
+							type="text"
+							placeholder="Search..."
+							startIcon={Search}
+							onFocus={() => setIsSearchOpen(true)}
+						/>
+						{isSearchOpen ? (
+							<div className="flex items-center gap-2">
+								<button
+									className="p-2 text-gray-400 hover:text-gray-600"
+									onClick={() => setIsSearchOpen(false)}
+								>
+									<X className="w-5 h-5" />
+								</button>
+							</div>
+						) : (
+							<div className="flex items-center gap-2">
+								<button
+									className="p-2 text-gray-400 hover:text-gray-600"
+									onClick={() => setIsSearchFriendOpen(true)}
+								>
+									<UserPlus className="w-5 h-5" />
+								</button>
+							</div>
+						)}
+					</div>
+
+					<div className="w-full">
+						{isSearchOpen ? (
+							// Search Mode Tabs (Contacts / Groups)
+							<div className="flex items-center gap-2 mb-4">
+								<Tabs defaultValue="contacts" className="w-full">
+									<TabsList className="border-b border-gray-200">
+										<TabsTrigger
+											value="contacts"
+											className="data-[state=active]:border-blue-500 data-[state=active]:text-blue-500"
+										>
+											Contacts
+										</TabsTrigger>
+										<TabsTrigger
+											value="groups"
+											className="data-[state=active]:border-blue-500 data-[state=active]:text-blue-500"
+										>
+											Groups
+										</TabsTrigger>
+									</TabsList>
+
+									<TabsContent value="contacts">
+										{/* Contacts List */}
+									</TabsContent>
+									<TabsContent value="groups">
+										{/* Groups List */}
+									</TabsContent>
+								</Tabs>
+							</div>
+						) : (
+							// Default Conversation Tabs (All / Unread)
+							<Tabs defaultValue="all" className="w-full">
+								<TabsList className="mb-4">
+									<TabsTrigger value="all">All</TabsTrigger>
+									<TabsTrigger value="password">Unread</TabsTrigger>
+								</TabsList>
+
+								<TabsContent value="all">
+									{demoDataConversation.map((conversation, index) => (
+										<Conversation
+											id={conversation.id}
+											key={index}
+											name={conversation.name}
+											message={conversation.message}
+											time={conversation.time}
+											unreadCount={conversation.unreadCount}
+											activeId={conversationActiveState}
+											online={conversation.online}
+											avatarUrl={conversation.avatarUrl}
+											onClick={() => {
+												setConversationActiveState(conversation.id);
+												setIsChatGroundOpen(true);
+											}}
+										/>
+									))}
+								</TabsContent>
+								<TabsContent value="password">Unread messages</TabsContent>
+							</Tabs>
+						)}
+					</div>
+
+
+				</div >
+
+			</StartSidebar >
 
 			<div className={cn(
 				"flex flex-col overflow-hidden justify-end",
@@ -244,12 +285,11 @@ const Page: React.FC = () => {
 
 			</EndSidebar>
 
-			<UserProfileDialog
-				isOpen={false}
-				onOpenChange={() => {}}
-				userProfile={userProfile}
-			></UserProfileDialog>
-		</div>
+			<AddFriendDialog
+				isOpen={isSearchFriendOpen}
+				onOpenChange={handleSearchFriendOpenChange}
+			/>
+		</div >
 	);
 };
 

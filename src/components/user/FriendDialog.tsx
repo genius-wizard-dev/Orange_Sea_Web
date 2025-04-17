@@ -10,7 +10,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RootState } from "@/redux/slices";
+import { openModal } from "@/redux/slices/userModal";
+import { AppDispatch } from "@/redux/store";
 import { getFriend, getReceived, getRequested } from "@/redux/thunks/friend";
+import { fetchUserProfile } from "@/redux/thunks/userModal";
 import { ENDPOINTS } from "@/service/api.endpoint";
 import apiService from "@/service/api.service";
 import {
@@ -36,12 +39,7 @@ interface UserCardProps {
   name: string;
   avatar: string;
   profileId: string;
-}
-
-interface UserSearchCardProps {
-  userId: string;
-  name: string;
-  avatar: string;
+  onModalOpen: (id: string) => void;
 }
 
 const FriendCard: React.FC<
@@ -49,9 +47,11 @@ const FriendCard: React.FC<
     onRemoveFriend: (friendShipId: string) => void;
     isRemoving: boolean;
   }
-> = ({ name, avatar, id, onRemoveFriend, isRemoving }) => (
+> = ({ profileId, name, avatar, id, onRemoveFriend, isRemoving, onModalOpen }) => (
   <div className="p-4 bg-card rounded-xl shadow flex items-center gap-4 transition hover:bg-accent">
-    <Avatar>
+    <Avatar className="cursor-pointer" onClick={() => {
+      onModalOpen(profileId);
+    }}>
       <AvatarImage src={avatar} alt={name} />
       <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
     </Avatar>
@@ -87,9 +87,11 @@ const RequestCard: React.FC<
     onReject: (requestId: string) => void;
     isHandling: boolean;
   }
-> = ({ name, avatar, requestId, onAccept, onReject, isHandling }) => (
+> = ({ profileId, name, avatar, requestId, onAccept, onReject, isHandling, onModalOpen }) => (
   <div className="p-4 bg-card rounded-xl shadow flex items-center gap-4">
-    <Avatar>
+    <Avatar className="cursor-pointer" onClick={() => {
+      onModalOpen(profileId);
+    }}>
       <AvatarImage src={avatar} alt={name} />
       <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
     </Avatar>
@@ -124,9 +126,11 @@ const SentCard: React.FC<
     onCancel: (requestId: string) => void;
     isRemoving: boolean;
   }
-> = ({ id, name, avatar, onCancel, isRemoving }) => (
+> = ({ profileId, id, name, avatar, onCancel, isRemoving, onModalOpen }) => (
   <div className="p-4 bg-card rounded-xl shadow flex items-center gap-4">
-    <Avatar>
+    <Avatar className="cursor-pointer" onClick={() => {
+      onModalOpen(profileId);
+    }}>
       <AvatarImage src={avatar} alt={name} />
       <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
     </Avatar>
@@ -150,37 +154,6 @@ const SentCard: React.FC<
   </div>
 );
 
-const SearchResultCard: React.FC<
-  UserSearchCardProps & {
-    onSendRequest: (userId: string) => void;
-    isSending: boolean;
-  }
-> = ({ name, avatar, userId, onSendRequest, isSending }) => (
-  <div className="p-4 bg-card rounded-xl shadow flex items-center gap-4">
-    <Avatar>
-      <AvatarImage src={avatar} alt={name || ""} />
-      <AvatarFallback>{(name || "").slice(0, 2).toUpperCase()}</AvatarFallback>
-    </Avatar>
-    <div className="flex-1">
-      <p className="font-medium">{name || "Người dùng"}</p>
-      <p className="text-sm text-muted-foreground">Người dùng</p>
-    </div>
-    <Button
-      size="sm"
-      variant="outline"
-      onClick={() => onSendRequest(userId)}
-      disabled={isSending}
-    >
-      {isSending ? (
-        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-      ) : (
-        <UserPlus className="w-4 h-4 mr-1" />
-      )}
-      Kết bạn
-    </Button>
-  </div>
-);
-
 const FriendDialog: React.FC<FriendDialogProps> = ({
   isOpen,
   onOpenChange,
@@ -188,7 +161,7 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
   const { friend, received, requested } = useSelector(
     (state: RootState) => state.friend
   );
-  const dispatch = useDispatch();
+  const dispatch: AppDispatch = useDispatch();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<
     Array<{
@@ -373,6 +346,11 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
       });
   };
 
+  const handleProfileOpen = (id: string) => {
+    dispatch(openModal(id));
+    dispatch(fetchUserProfile(id));
+  }
+
   // Loading component for better UI
   const LoadingState = ({ message }: { message: string }) => (
     <div className="flex flex-col items-center justify-center py-12 space-y-4">
@@ -391,36 +369,39 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="h-full w-full max-w-[90vw] max-h-[90vh] md:max-w-6xl overflow-hidden jsutify-start block">
         <DialogHeader className="flex flex-row items-center justify-between">
-          <DialogTitle>Bạn bè</DialogTitle>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={fetchFriendData}
-            disabled={isFetching}
-            title="Làm mới danh sách"
-          >
-            {isFetching ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="lucide lucide-refresh-cw"
-              >
-                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-                <path d="M21 3v5h-5" />
-                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-                <path d="M3 21v-5h5" />
-              </svg>
-            )}
-          </Button>
+          <DialogTitle className="flex items-center gap-4">
+            <span>Bạn bè</span>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={fetchFriendData}
+              disabled={isFetching}
+              title="Làm mới danh sách"
+            >
+              {isFetching ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="lucide lucide-refresh-cw"
+                >
+                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                  <path d="M21 3v5h-5" />
+                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                  <path d="M3 21v-5h5" />
+                </svg>
+              )}
+            </Button>
+          </DialogTitle>
+
         </DialogHeader>
         <Tabs
           defaultValue="friends"
@@ -430,10 +411,6 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
             <TabsTrigger value="friends">
               <Users className="w-4 h-4 mr-1" />
               Bạn bè
-            </TabsTrigger>
-            <TabsTrigger value="search">
-              <Search className="w-4 h-4 mr-1" />
-              Tìm kiếm
             </TabsTrigger>
             <TabsTrigger value="requests">
               <UserPlus className="w-4 h-4 mr-1" />
@@ -446,52 +423,6 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
           </TabsList>
 
           <div className="flex-1">
-            <TabsContent value="search">
-              <form onSubmit={handleSearch} className="mb-4">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Tìm kiếm người dùng..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="flex-1"
-                    disabled={isLoading}
-                  />
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading ? (
-                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                    ) : (
-                      <Search className="w-4 h-4 mr-1" />
-                    )}
-                    Tìm
-                  </Button>
-                </div>
-              </form>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {isLoading ? (
-                  <div className="col-span-2">
-                    <LoadingState message="Đang tìm kiếm..." />
-                  </div>
-                ) : searchResults.length > 0 ? (
-                  searchResults.map((result) => (
-                    <SearchResultCard
-                      key={result.id}
-                      name={result.name}
-                      avatar={result.avatar}
-                      userId={result.id}
-                      onSendRequest={handleSendFriendRequest}
-                      isSending={pendingSendRequest === result.id}
-                    />
-                  ))
-                ) : (
-                  <div className="col-span-2 text-center text-muted-foreground py-8">
-                    {searchQuery.trim()
-                      ? "Không tìm thấy kết quả nào"
-                      : "Nhập tên người dùng để tìm kiếm"}
-                  </div>
-                )}
-              </div>
-            </TabsContent>
 
             <TabsContent value="friends">
               {isFetching ? (
@@ -508,6 +439,7 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
                         onRemoveFriend={handleRemoveFriendShip}
                         isRemoving={pendingFriendShip === user.id}
                         avatar={user.avatar || "/avatars/default.jpg"}
+                        onModalOpen={handleProfileOpen}
                       />
                     ))
                   ) : (
@@ -536,6 +468,7 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
                         onAccept={handleAcceptRequest}
                         onReject={handleRejectRequest}
                         isHandling={pendingRequestAction === request.id}
+                        onModalOpen={handleProfileOpen}
                       />
                     ))
                   ) : (
@@ -562,6 +495,7 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
                         avatar={request.avatar || "/avatars/default.jpg"}
                         onCancel={handleRemoveFriendShip}
                         isRemoving={pendingFriendShip === request.id}
+                        onModalOpen={handleProfileOpen}
                       />
                     ))
                   ) : (
