@@ -13,7 +13,7 @@ export const ENDPOINTS = {
   },
   PROFILE: {
     ME: `${BASE_ENDPOINT}/profile/me`,
-    INFO: (id: number) => `${BASE_ENDPOINT}/profile/${id}`,
+    INFO: (id: string) => `${BASE_ENDPOINT}/profile/${id}`,
     GET_BY_USERNAME: (username: string) =>
       `${BASE_ENDPOINT}/profile/username/${username}`,
   },
@@ -30,5 +30,7 @@ export const ENDPOINTS = {
     REQUESTS_SENT: `${BASE_ENDPOINT}/friend/requests/sent`,
     HANDLE_REQUEST: (id: string) => `${BASE_ENDPOINT}/friend/requests/${id}`,
     REMOVE_FRIEND: (id: string) => `${BASE_ENDPOINT}/friend/delete/${id}`,
+    SEARCH_NEW_FRIEND: (keyword: string) =>
+      `${BASE_ENDPOINT}/friend/search/${keyword}`,
   },
 };
