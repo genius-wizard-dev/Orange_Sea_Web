@@ -1,11 +1,5 @@
 import { cn } from "@/lib/utils";
-import {
-	CheckCheck,
-	Check,
-	Clock,
-	FileText,
-	Download,
-} from "lucide-react";
+import { CheckCheck, Check, Clock, FileText, Download } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	DropdownMenu,
@@ -14,59 +8,93 @@ import {
 	DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { MoreVertical } from "lucide-react";
+import { Message, MessageType } from "@/types/message";
 
-type MessageType = "text" | "image" | "video" | "file" | "revoked";
 type MessageStatus = "sending" | "sent" | "seen";
 
 interface ChatBubbleProps {
-	type: MessageType;
-	content: string | string[]; // string[] for image type
-	time: string;
 	status?: MessageStatus;
 	isOwn?: boolean;
-	fileName?: string;
-	avatarUrl?: string;
-	senderName?: string;
+	// isRecalled?: boolean;
+	// fileName?: string;
+	// fileSize?: number;
+	// fileUrl?: string;
+	// avatarUrl?: string;
+	// senderName?: string;
+	// type: MessageType;
+	// content: string;
+	// time: string;
+	data: Message;
 }
 
+const formatMessageTime = (time: string): string => {
+	const date = new Date(time);
+	const now = new Date();
 
-function ImageGallery({ images }: { images: string[] }) {
-	const visibleImages = images.slice(0, 4);
-	const hiddenCount = images.length - 4;
+	const diffMs = now.getTime() - date.getTime();
+	const diffMinutes = Math.floor(diffMs / 60000);
+	const diffHours = Math.floor(diffMinutes / 60);
+	const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-	return (
-		<div className="grid grid-cols-2 gap-1 overflow-hidden rounded-xl">
-			{visibleImages.map((src, i) => (
-				<div key={i} className="relative h-32 w-full">
-					<img
-						src={src}
-						alt={`img-${i}`}
-						className="object-cover rounded-xl"
-					/>
-					{i === 3 && hiddenCount > 0 && (
-						<div className="absolute inset-0 bg-black/50 text-white text-lg font-semibold flex items-center justify-center rounded-xl">
-							+{hiddenCount}
-						</div>
-					)}
-				</div>
-			))}
-		</div>
-	);
-}
+	const hour = date.getHours().toString().padStart(2, "0");
+	const minute = date.getMinutes().toString().padStart(2, "0");
+
+	if (diffMinutes < 1) return "Vừa xong";
+	if (diffMinutes < 60) return `${diffMinutes} phút trước`;
+	if (diffHours < 24 && date.toDateString() === now.toDateString()) {
+		return `${diffHours} giờ trước`;
+	}
+
+	const yesterday = new Date();
+	yesterday.setDate(now.getDate() - 1);
+
+	if (date.toDateString() === now.toDateString()) {
+		return `Hôm nay, ${hour}:${minute}`;
+	}
+	if (date.toDateString() === yesterday.toDateString()) {
+		return `Hôm qua, ${hour}:${minute}`;
+	}
+
+	const day = date.getDate().toString().padStart(2, "0");
+	const month = (date.getMonth() + 1).toString().padStart(2, "0");
+	const year = date.getFullYear();
+	return `${day}/${month}/${year}, ${hour}:${minute}`;
+};
+
+// function ImageGallery({ images }: { images: string[] }) {
+// 	const visibleImages = Array.isArray(images) ? images.slice(0, 4) : [];
+
+// 	const hiddenCount = images.length - 4;
+
+// 	return (
+// 		<div className="grid grid-cols-2 gap-1 overflow-hidden rounded-xl">
+// 			{visibleImages.map((src, i) => (
+// 				<div key={i} className="relative h-32 w-full">
+// 					<img
+// 						src={src}
+// 						alt={`img-${i}`}
+// 						className="object-cover rounded-xl"
+// 					/>
+// 					{i === 3 && hiddenCount > 0 && (
+// 						<div className="absolute inset-0 bg-black/50 text-white text-lg font-semibold flex items-center justify-center rounded-xl">
+// 							+{hiddenCount}
+// 						</div>
+// 					)}
+// 				</div>
+// 			))}
+// 		</div>
+// 	);
+// }
 
 
 export const ChatBubble: React.FC<ChatBubbleProps> = ({
-	type,
-	content,
-	time,
 	status = "sent",
 	isOwn = false,
-	fileName,
-	avatarUrl,
-	senderName = "OO",
+	data,
 }) => {
+
 	const bubbleColor =
-		type === "revoked"
+		data.isRecalled
 			? "bg-gray-200 text-gray-500 italic"
 			: isOwn
 				? "bg-orange-500 text-white"
@@ -77,7 +105,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 		: "rounded-tr-2xl rounded-tl-2xl rounded-bl-md rounded-br-2xl";
 
 	const renderStatusIcon = () => {
-		if (!isOwn || type === "revoked") return null;
+		if (!isOwn || data.isRecalled) return null;
 		switch (status) {
 			case "sending":
 				return <Clock className="w-4 h-4 text-gray-400 ml-1" />;
@@ -85,57 +113,61 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 				return <Check className="w-4 h-4 text-gray-400 ml-1" />;
 			case "seen":
 				return <CheckCheck className="w-4 h-4 text-green-500 ml-1" />;
+			default:
+				return null;
 		}
 	};
 
 	const renderContent = () => {
-		if (type === "revoked") {
+		if (data.isRecalled) {
 			return <span>Tin nhắn đã được thu hồi</span>;
 		}
 
-		if (type === "text") {
-			return <span>{content}</span>;
+		if (data.type === MessageType.TEXT) {
+			return <div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, corner)}>{data.content}</div>;
 		}
 
-		if (type === "image") {
+		if (data.type === MessageType.IMAGE) {
 			return (
-				<ImageGallery images={content as string[]} />
+				<div className="flex flex-col gap-1">
+					<img src={data.fileUrl ?? undefined} alt="image" className="rounded-lg max-w-[240px] max-h-[180px] object-cover" />
+				</div>
 			);
 		}
 
-		if (type === "video") {
+		if (data.type === MessageType.VIDEO) {
 			return (
 				<video controls className="rounded-lg max-w-[240px] max-h-[180px]">
-					<source src={content as string} />
+					<source src={data.fileUrl ?? undefined} />
 					Trình duyệt của bạn không hỗ trợ video tag.
 				</video>
 			);
 		}
 
-		if (type === "file") {
+		if (data.type === MessageType.RAW) {
 			return (
-				<div className="flex items-center gap-2">
-					<FileText className="w-5 h-5" />
-					<span className="truncate max-w-[160px]">{fileName || "File đính kèm"}</span>
-					<a href={content as string} download target="_blank" rel="noopener noreferrer">
-						<Download className="w-5 h-5 text-gray-500 hover:text-gray-700" />
-					</a>
+				<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, corner)}>
+					<div className="flex items-center gap-2">
+						<FileText className="w-5 h-5" />
+						<span className="truncate max-w-[160px]">{data.fileName || "File đính kèm"}</span>
+						<a href={data.fileUrl ?? undefined} download target="_blank" rel="noopener noreferrer">
+							<Download className="w-5 h-5 text-gray-500 hover:text-gray-700" />
+						</a>
+					</div>
 				</div>
 			);
 		}
 
-		return null;
+		return typeof MessageType;
 	};
 
 	return (
-		<div
-			className={cn("flex items-end gap-2 group", isOwn ? "justify-end" : "justify-start")}
-		>
+		<div className={cn("flex items-end gap-2 mb-3 group", isOwn ? "justify-end" : "justify-start")}>
 			{!isOwn && (
 				<Avatar className="w-8 h-8">
-					<AvatarImage src={avatarUrl} />
+					<AvatarImage src={data.sender.avatar} />
 					<AvatarFallback>
-						{senderName
+						{data.sender.name
 							?.split(" ")
 							.map((word) => word[0])
 							.join("")
@@ -146,12 +178,11 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 			)}
 
 			<div className="relative flex flex-col gap-1 group/message">
-				<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, corner)}>
-					{renderContent()}
-				</div>
 
-				<div className="flex items-center text-xs text-gray-400 mt-1">
-					<span>{time}</span>
+				{renderContent()}
+
+				<div className="flex items-center justify-end text-xs text-gray-400 mt-1">
+					<span>{formatMessageTime(data.createdAt)}</span>
 					{renderStatusIcon()}
 				</div>
 
@@ -185,6 +216,5 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 				</div>
 			</div>
 		</div>
-
 	);
 };

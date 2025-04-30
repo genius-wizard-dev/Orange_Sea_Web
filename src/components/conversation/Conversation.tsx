@@ -4,13 +4,13 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface ConversationProps {
-	id: number;
+	id: string;
 	name: string;
-	avatarUrl: string;
+	avatarUrl: string | undefined;
 	message: string;
 	time: string;
 	unreadCount?: number;
-	activeId?: number;
+	activeId?: string | null;
 	online?: boolean;
 	onClick?: () => void;
 }
