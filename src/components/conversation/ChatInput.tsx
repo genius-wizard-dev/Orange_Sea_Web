@@ -1,23 +1,40 @@
-import { Paperclip, Smile, Send } from "lucide-react";
+import { Paperclip, Smile, Send, Image, Sticker, X } from "lucide-react";
+import { useRef, useState, useEffect } from "react";
+import EmojiPicker from 'emoji-picker-react';
+
+import { Button } from "@/components/ui/button";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { useRef, useEffect } from "react";
 
 type ChatInputProps = {
 	value: string;
 	onChange: (val: string) => void;
-	onSend: () => void;
+	onSend: (text: string, fileImage: any) => void;
 	onAttach?: () => void;
-	onEmoji?: () => void;
 };
+
+const stickers = [
+	"https://i.imgur.com/3aXJ2cT.png",
+	"https://i.imgur.com/W5DqNfl.png",
+	"https://i.imgur.com/NWZc7Kx.png",
+	"https://i.imgur.com/X7Erbvb.png",
+	"https://i.imgur.com/NXwC2kx.png",
+];
 
 export const ChatInput: React.FC<ChatInputProps> = ({
 	value,
 	onChange,
 	onSend,
 	onAttach,
-	onEmoji,
 }) => {
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
+	const [previewImage, setPreviewImage] = useState<string | null>(null);
+	const [imageFile, setImageFile] = useState<File | null>(null);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
 		if (textareaRef.current) {
@@ -29,46 +46,147 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 		}
 	}, [value]);
 
+	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (file) {
+			setImageFile(file);
+			if (file.type.startsWith("image/")) {
+				const reader = new FileReader();
+				reader.onload = () => {
+					setPreviewImage(reader.result as string);
+				};
+				reader.readAsDataURL(file);
+			} else {
+				setPreviewImage(null);
+			}
+		}
+	};
+
+
+	const insertAtCursor = (text: string) => {
+		if (textareaRef.current) {
+			const textarea = textareaRef.current;
+			const start = textarea.selectionStart;
+			const end = textarea.selectionEnd;
+			const newText = value.slice(0, start) + text + value.slice(end);
+			onChange(newText);
+			setTimeout(() => {
+				textarea.focus();
+				textarea.setSelectionRange(
+					start + text.length,
+					start + text.length
+				);
+			}, 0);
+		}
+	};
+
+	const handleEmojiClick = (emojiData: any) => {
+		insertAtCursor(emojiData.emoji);
+	};
+
 	return (
-		<div className="flex items-center p-2 border-t bg-white/30">
-			{/* Attach icon */}
-			<button
-				onClick={onAttach}
-				className="p-2 text-gray-400 hover:text-gray-600"
-			>
-				<Paperclip className="w-5 h-5" />
-			</button>
+		<div className="bg-white/30 gap-2 border-t border-gray-200 backdrop-blur-lg shadow-md shadow-gray-300/50 p-2">
 
-			{/* Input */}
-			<textarea
-				ref={textareaRef}
-				placeholder="Type here..."
-				value={value}
-				onChange={(e) => onChange(e.target.value)}
-				className={cn(
-					"transition-all duration-200 ease-in-out",
-					"resize-none flex-1 px-4 py-2 mx-2 text-sm border-none focus:ring-0 outline-none bg-transparent placeholder-gray-400",
-					"min-h-[36px] max-h-[150px] leading-[1.2] overflow-y-auto"
-				)}
-				rows={1} // Start with a single row
-				
-			></textarea>
+			{imageFile && (
+				<div className="relative w-fit max-w-[250px] flex items-center gap-2 border rounded-xl p-2 shadow-md bg-white">
+					{previewImage ? (
+						<img
+							src={previewImage}
+							alt="Preview"
+							className="rounded-md w-20 h-20 object-cover"
+						/>
+					) : (
+						<div className="flex items-center gap-2">
+							<Paperclip className="w-6 h-6 text-gray-600" />
+							<div className="text-sm max-w-[150px] truncate">{imageFile.name}</div>
+						</div>
+					)}
+					<button
+						className="absolute -top-2 -right-2 bg-black/70 text-white p-1 rounded-full hover:bg-black"
+						onClick={() => {
+							setPreviewImage(null);
+							setImageFile(null);
+						}}
+					>
+						<X className="w-4 h-4" />
+					</button>
+				</div>
+			)}
 
-			{/* Emoji icon */}
-			<button
-				onClick={onEmoji}
-				className="p-2 text-gray-400 hover:text-gray-600"
-			>
-				<Smile className="w-5 h-5" />
-			</button>
+			<div className="flex items-center">
+				<Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
+					<Paperclip className="w-5 h-5 text-gray-500" />
+				</Button>
 
-			{/* Send icon */}
-			<button
-				onClick={onSend}
-				className="p-2 text-orange-500 hover:text-orange-600"
-			>
-				<Send className="w-5 h-5" />
-			</button>
+				<textarea
+					ref={textareaRef}
+					value={value}
+					onChange={(e) => onChange(e.target.value)}
+					placeholder="Type something..."
+					className={cn(
+						"transition-all duration-200 ease-in-out",
+						"resize-none flex-1 px-4 py-2 text-sm border-none focus:ring-0 outline-none bg-transparent placeholder-gray-400",
+						"min-h-[36px] max-h-[150px] leading-[1.2] overflow-y-auto"
+					)}
+					rows={1}
+				/>
+
+				<Popover>
+					<PopoverTrigger asChild>
+						<Button variant="ghost" size="icon">
+							<Smile className="w-5 h-5 text-gray-500" />
+						</Button>
+					</PopoverTrigger>
+					<PopoverContent className="p-0 w-fit shadow-none">
+						<EmojiPicker onEmojiClick={handleEmojiClick} emojiStyle="native" skinTonesDisabled />
+					</PopoverContent>
+				</Popover>
+
+				<Popover>
+					<PopoverTrigger asChild>
+						<Button variant="ghost" size="icon">
+							<Sticker className="w-5 h-5 text-gray-500" />
+						</Button>
+					</PopoverTrigger>
+					<PopoverContent className="w-48 grid grid-cols-3 gap-2 p-2 shadow-none">
+						{stickers.map((src, idx) => (
+							<Button
+								key={idx}
+								variant="ghost"
+								size="icon"
+								className="p-0 hover:scale-105 transition-transform"
+								onClick={() => insertAtCursor(`[sticker:${src}]`)}
+							>
+								<img
+									src={src}
+									alt={`sticker-${idx}`}
+									className="w-12 h-12 object-contain"
+								/>
+							</Button>
+						))}
+					</PopoverContent>
+				</Popover>
+
+				<Button
+					variant="ghost"
+					size="icon"
+					onClick={() => {
+						onSend(value, imageFile)
+						setPreviewImage(null);
+						setImageFile(null);
+					}}
+					className="text-orange-500 hover:text-orange-600"
+				>
+					<Send className="w-5 h-5" />
+				</Button>
+				<input
+					type="file"
+					accept="*"
+					hidden
+					ref={fileInputRef}
+					onChange={handleFileChange}
+				/>
+			</div>
 		</div>
 	);
 };

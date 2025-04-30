@@ -16,7 +16,7 @@ import { RootState } from "@/redux/slices";
 import apiService from "@/service/api.service";
 import { ENDPOINTS } from "@/service/api.endpoint";
 import { toast } from "sonner";
-import { openModal } from "@/redux/slices/userModal";
+import { openUserModal } from "@/redux/slices/userModal";
 import { fetchUserProfile } from "@/redux/thunks/userModal";
 import { AppDispatch } from "@/redux/store";
 
@@ -83,7 +83,7 @@ const AddFriendDialog: React.FC<FriendDialogProps> = ({ isOpen, onOpenChange }) 
 	};
 
 	const handleProfileOpen = (id: string) => {
-		dispatch(openModal(id));
+		dispatch(openUserModal(id));
 		dispatch(fetchUserProfile(id));
 	}
 
