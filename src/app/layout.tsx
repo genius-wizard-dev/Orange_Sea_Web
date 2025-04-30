@@ -25,7 +25,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased  min-w-screen min-h-screen`}
       >
-        <OceanBackground />
+        <OceanBackground speed={0.5} />
         <FCMToken />
         <MainLayout>{children}</MainLayout>
         <Toaster position="top-right" />

@@ -23,12 +23,12 @@ const userModalSlice = createSlice({
   name: 'userModal',
   initialState,
   reducers: {
-    openModal: (state, action: PayloadAction<string>) => {
+    openUserModal: (state, action: PayloadAction<string>) => {
       state.isModalOpen = true;
       state.profileId = action.payload;
       state.status = 'loading';
     },
-    closeModal: (state) => {
+    closeUserModal: (state) => {
       state.isModalOpen = false;
       state.modalProfile = null;
       state.profileId = null;
@@ -52,5 +52,5 @@ const userModalSlice = createSlice({
   },
 });
 
-export const { openModal, closeModal } = userModalSlice.actions;
+export const { openUserModal, closeUserModal } = userModalSlice.actions;
 export default userModalSlice.reducer;

@@ -17,16 +17,16 @@ import {
   removeAccessToken,
   removeRefreshToken,
 } from "@/utils/token";
-import { Bell, User, Users } from "lucide-react";
+import { Bell, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React, { use, useState } from "react";
+import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import ChangePasswordDialog from "./ChangePasswordDialog";
 import LoadingSpinner from "./LoadingSpinner";
 import ProfileDialog from "./ProfileDialog";
 import FriendDialog from "./user/FriendDialog";
 import UserProfileDialog from "./user/UserProfileDialog";
-import { closeModal, openModal } from "@/redux/slices/userModal";
+import { closeUserModal, openUserModal } from "@/redux/slices/userModal";
 import { fetchUserProfile } from "@/redux/thunks/userModal";
 
 import { AppDispatch } from "@/redux/store";
@@ -61,7 +61,7 @@ const TopNavigation: React.FC = () => {
   }
 
   const handleProfileOpen = (id: string) => {
-    dispatch(openModal(id));
+    dispatch(openUserModal(id));
     dispatch(fetchUserProfile(id));
   };
 
@@ -121,14 +121,14 @@ const TopNavigation: React.FC = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative"
                 onClick={handleFriendClick}
+                className="relative"
               >
                 <Users className="text-gray-800" />
               </Button>
-              <Button variant="ghost" size="icon">
+              {/* <Button variant="ghost" size="icon">
                 <Bell className="text-gray-800" />
-              </Button>
+              </Button> */}
               <DropdownMenu
                 open={isDropdownOpen}
                 onOpenChange={setIsDropdownOpen}
@@ -188,7 +188,7 @@ const TopNavigation: React.FC = () => {
 
       <UserProfileDialog
         isOpen={isModalOpen}
-        onOpenChange={() => dispatch(closeModal())}
+        onOpenChange={() => dispatch(closeUserModal())}
         userProfile={modalProfile}
       />
     </>

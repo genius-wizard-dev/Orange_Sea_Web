@@ -10,7 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RootState } from "@/redux/slices";
-import { openModal } from "@/redux/slices/userModal";
+import { openUserModal } from "@/redux/slices/userModal";
 import { AppDispatch } from "@/redux/store";
 import { getFriend, getReceived, getRequested } from "@/redux/thunks/friend";
 import { fetchUserProfile } from "@/redux/thunks/userModal";
@@ -210,52 +210,51 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
     if (isOpen) {
       setSearchQuery("");
       setSearchResults([]);
-      fetchFriendData();
     }
   }, [isOpen]);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // const handleSearch = async (e: React.FormEvent) => {
+  //   e.preventDefault();
 
-    if (isLoading) return;
-    setIsLoading(true);
-    setSearchResults([]);
+  //   if (isLoading) return;
+  //   setIsLoading(true);
+  //   setSearchResults([]);
 
-    try {
-      if (!searchQuery.trim()) {
-        setIsLoading(false);
-        return;
-      }
+  //   try {
+  //     if (!searchQuery.trim()) {
+  //       setIsLoading(false);
+  //       return;
+  //     }
 
-      if (searchQuery.trim() === profile?.username) {
-        toast.error("Bạn không thể tìm kiếm chính mình");
-        setIsLoading(false);
-        return;
-      }
+  //     if (searchQuery.trim() === profile?.username) {
+  //       toast.error("Bạn không thể tìm kiếm chính mình");
+  //       setIsLoading(false);
+  //       return;
+  //     }
 
-      const result = await apiService.get<{
-        status: string;
-        message: string;
-        data: {
-          id: string;
-          name: string;
-          avatar: string;
-        } | null;
-      }>(ENDPOINTS.PROFILE.GET_BY_USERNAME(searchQuery.trim()));
+  //     const result = await apiService.get<{
+  //       status: string;
+  //       message: string;
+  //       data: {
+  //         id: string;
+  //         name: string;
+  //         avatar: string;
+  //       } | null;
+  //     }>(ENDPOINTS.PROFILE.GET_BY_USERNAME(searchQuery.trim()));
 
-      if (result.status === "success" && result.data) {
-        setSearchResults([result.data]);
-      } else {
-        setSearchResults([]);
-      }
-    } catch (error) {
-      console.error("Search error:", error);
-      toast.error("Lỗi khi tìm kiếm người dùng");
-      setSearchResults([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  //     if (result.status === "success" && result.data) {
+  //       setSearchResults([result.data]);
+  //     } else {
+  //       setSearchResults([]);
+  //     }
+  //   } catch (error) {
+  //     console.error("Search error:", error);
+  //     toast.error("Lỗi khi tìm kiếm người dùng");
+  //     setSearchResults([]);
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
 
   const handleRemoveFriendShip = (friendShipId: string) => {
     setPendingFriendShip(friendShipId);
@@ -276,33 +275,33 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
       });
   };
 
-  const handleSendFriendRequest = (userId: string) => {
-    setPendingSendRequest(userId);
-    apiService
-      .post(ENDPOINTS.FRIEND.SEND_REQUEST, { receiverId: userId })
-      .then(async (response: any) => {
-        if (response.status === "PENDING") {
-          toast.success("Đã gửi lời mời kết bạn");
-          await dispatch(getRequested() as any);
-          setSearchResults([]);
-        }
-      })
-      .catch(async (error) => {
-        console.error("Error sending friend request:", error);
-        if (
-          error.message?.includes("Yêu cầu kết bạn đã tồn tại") ||
-          error?.response?.data?.message?.includes("Yêu cầu kết bạn đã tồn tại")
-        ) {
-          toast.error("Yêu cầu kết bạn đã tồn tại");
-        } else {
-          toast.error(error.message || "Không thể gửi lời mời kết bạn");
-        }
-        await dispatch(getRequested() as any);
-      })
-      .finally(() => {
-        setPendingSendRequest(null);
-      });
-  };
+  // const handleSendFriendRequest = (userId: string) => {
+  //   setPendingSendRequest(userId);
+  //   apiService
+  //     .post(ENDPOINTS.FRIEND.SEND_REQUEST, { receiverId: userId })
+  //     .then(async (response: any) => {
+  //       if (response.status === "PENDING") {
+  //         toast.success("Đã gửi lời mời kết bạn");
+  //         await dispatch(getRequested() as any);
+  //         setSearchResults([]);
+  //       }
+  //     })
+  //     .catch(async (error) => {
+  //       console.error("Error sending friend request:", error);
+  //       if (
+  //         error.message?.includes("Yêu cầu kết bạn đã tồn tại") ||
+  //         error?.response?.data?.message?.includes("Yêu cầu kết bạn đã tồn tại")
+  //       ) {
+  //         toast.error("Yêu cầu kết bạn đã tồn tại");
+  //       } else {
+  //         toast.error(error.message || "Không thể gửi lời mời kết bạn");
+  //       }
+  //       await dispatch(getRequested() as any);
+  //     })
+  //     .finally(() => {
+  //       setPendingSendRequest(null);
+  //     });
+  // };
 
   const handleAcceptRequest = (requestId: string) => {
     setPendingRequestAction(requestId);
@@ -347,7 +346,7 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
   };
 
   const handleProfileOpen = (id: string) => {
-    dispatch(openModal(id));
+    dispatch(openUserModal(id));
     dispatch(fetchUserProfile(id));
   }
 
