@@ -1,7 +1,16 @@
 "use client";
 import { useEffect } from "react";
 
-const OceanBackground: React.FC = () => {
+// Animation props
+
+export interface animationProps {
+  speed?: number;
+};
+
+
+const OceanBackground: React.FC<animationProps> = ({
+  speed = 1, // Default speed value
+} : animationProps) => {
   useEffect(() => {
     const adjustSunPosition = () => {
       const sun = document.querySelector(".sun") as HTMLElement | null;
@@ -19,6 +28,11 @@ const OceanBackground: React.FC = () => {
     };
   }, []);
 
+  const animationTime = (seconds: number, speed: number) => {
+    const time = seconds * speed; // Adjust the time based on the speed
+    return `${time}s`;
+  }
+
   return (
     <div className="ocean-container">
       {/* Mặt trời */}
@@ -34,7 +48,7 @@ const OceanBackground: React.FC = () => {
             >
               <animate
                 attributeName="d"
-                dur="30s"
+                dur={animationTime(30, speed)}
                 repeatCount="indefinite"
                 values="
                 M0,160L48,154.7C96,149,192,139,288,138.7C384,139,480,149,576,144C672,139,768,117,864,117.3C960,117,1056,139,1152,144C1248,149,1344,139,1392,133.3L1440,128L1440,320L0,320Z;
@@ -50,7 +64,7 @@ const OceanBackground: React.FC = () => {
             >
               <animate
                 attributeName="d"
-                dur="32s"
+                dur={animationTime(35, speed)}
                 repeatCount="indefinite"
                 values="
                             M0,192L48,186.7C96,181,192,171,288,165.3C384,160,480,160,576,154.7C672,149,768,139,864,144C960,149,1056,171,1152,176C1248,181,1344,171,1392,165.3L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z;
@@ -66,7 +80,7 @@ const OceanBackground: React.FC = () => {
             >
               <animate
                 attributeName="d"
-                dur="38s"
+                dur={animationTime(40, speed)}
                 repeatCount="indefinite"
                 values="
                             M0,160L48,149.3C96,139,192,117,288,122.7C384,128,480,160,576,176C672,192,768,192,864,186.7C960,181,1056,171,1152,170.7C1248,171,1344,181,1392,186.7L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z;

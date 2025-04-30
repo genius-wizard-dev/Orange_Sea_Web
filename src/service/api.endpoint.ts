@@ -33,4 +33,28 @@ export const ENDPOINTS = {
     SEARCH_NEW_FRIEND: (keyword: string) =>
       `${BASE_ENDPOINT}/friend/search/${keyword}`,
   },
+  GROUP: {
+    LIST: `${BASE_ENDPOINT}/group`,
+    DETAIL: (id: string) => `${BASE_ENDPOINT}/group/${id}`,
+    CREATE: `${BASE_ENDPOINT}/group`,
+    UPDATE: (id: string) => `${BASE_ENDPOINT}/group/${id}`,
+    DELETE: (id: string) => `${BASE_ENDPOINT}/group/${id}`,
+    MEMBERS: (id: string) => `${BASE_ENDPOINT}/group/${id}/members`,
+    ADD_MEMBER: (id: string) => `${BASE_ENDPOINT}/group/${id}/members`,
+    REMOVE_MEMBER: (id: string, memberId: string) =>
+      `${BASE_ENDPOINT}/group/${id}/members/${memberId}`,
+  },
+  CHAT: {
+    SEND: `${BASE_ENDPOINT}/chat/send`,
+    UPLOAD_MEDIA: `${BASE_ENDPOINT}/chat/upload`,
+    STICKER: `${BASE_ENDPOINT}/chat/sticker`,
+    MESSAGE_LIST: (groupId: string, cursor: string) => `${BASE_ENDPOINT}/chat/messages/${groupId}?cursor=${cursor}`,
+    RECALL: (messageId: string) => `${BASE_ENDPOINT}/chat/recall/${messageId}`,
+    DELETE: (messageId: string) => `${BASE_ENDPOINT}/chat/delete/${messageId}`,
+    FORWARD: `${BASE_ENDPOINT}/chat/forward`,
+    MARK_AS_READ: (groupId: string) => `${BASE_ENDPOINT}/chat/read/${groupId}`,
+    UNREAD_COUNTS: `${BASE_ENDPOINT}/chat/unread-counts`,
+    REACTIONS: (messageId: string) => `${BASE_ENDPOINT}/chat/message/${messageId}/reactions`,
+    ADD_REACTION: (messageId: string) => `${BASE_ENDPOINT}/chat/message/${messageId}/reaction`,
+  }
 };
