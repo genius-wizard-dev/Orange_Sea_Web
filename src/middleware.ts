@@ -10,6 +10,7 @@ const PROTECTED_AUTH_PAGES = [
   ...REGISTER_IS_PENDING,
 ];
 const OTP_PAGE = "/otp";
+const HOME_PAGE = "/";
 
 const checkRegister = async (data: {
   key: string;
@@ -48,12 +49,19 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith(path)
   );
   const isOtpPage = pathname === OTP_PAGE;
+  const isHomePage = pathname === HOME_PAGE;
 
   // Redirect to homepage if already logged in and trying to access auth pages
   if (token && isProtectedAuthPage) {
     console.log("🚫 Đã login → Redirect");
 
     return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  // Redirect to login if not logged in and trying to access the home page
+  if (!token && isHomePage) {
+    console.log("🚫 Chưa login → Redirect to login");
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   // Check OTP page access - must have valid key
@@ -90,5 +98,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/login", "/register/:path*", "/forgot-password", "/otp"],
+  matcher: ["/login", "/register/:path*", "/forgot-password", "/otp", "/"],
 };

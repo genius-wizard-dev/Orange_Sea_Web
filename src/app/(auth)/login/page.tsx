@@ -52,7 +52,7 @@ const LoginPage: React.FC = () => {
             username: "",
             password: "",
           });
-          router.replace("/");
+          window.location.href = "/";
         } else {
           toast.error(profileRes.message || "Đăng nhập thất bại!");
         }
@@ -129,5 +129,4 @@ const LoginPage: React.FC = () => {
   );
 };
 
-// export default withGuest(LoginPage);
 export default LoginPage;
