@@ -101,6 +101,14 @@ const Page: React.FC = () => {
   const cursor = useSelector((state: RootState) =>
     activeGroupId ? state.chat.cursorsByGroup[activeGroupId] : null
   );
+  
+  const handleLeaveGroup = (groupId: string) => {
+    console.log(`Người dùng muốn rời khỏi nhóm có ID: ${groupId}`);
+    // Thêm logic thực tế để rời khỏi nhóm ở đây (ví dụ: gọi API)
+    // Sau khi rời khỏi nhóm thành công, có thể bạn muốn cập nhật activeGroup hoặc đóng sidebar.
+    dispatch(setActiveGroup("")); // Hoặc cập nhật lại activeGroup
+    setIsEndSidebarOpen(false);
+};
 
   // Action data state
   const [forwardMessageId, setForwardMessageId] = useState<string>("");
@@ -759,7 +767,20 @@ const Page: React.FC = () => {
       <EndSidebar
         hidden={!isEndSidebarOpen}
         onClose={() => setIsEndSidebarOpen(false)}
-      ></EndSidebar>
+        activeGroup={activeGroup}
+        setIsCreateConversationOpen={setIsCreateConversationOpen}
+        onEditGroup={handleEditGroupClick}
+        onAddMemberClick={() => {
+          console.log("Thêm thành viên vào nhóm");
+        }}
+        onRemoveMemberClick={(memberId) => {
+          console.log('Nút xóa thành viên (header) được click');   
+        }}
+        onLeaveGroup={handleLeaveGroup} // Gọi hàm rời nhóm khi click nút "Rời nhóm"
+      >
+        
+      </EndSidebar>
+      
 
       <AddFriendDialog
         isOpen={isSearchFriendOpen}
@@ -784,6 +805,7 @@ const Page: React.FC = () => {
         }}
         groups={groups} // Pass the groups array from the state
       />
+      
     </div>
   );
 };

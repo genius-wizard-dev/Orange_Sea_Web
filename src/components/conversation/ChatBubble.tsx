@@ -200,8 +200,8 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 						<DropdownMenuContent side={isOwn ? "left" : "right"} align="start">
 							{isOwn && (
 								<>
-									<DropdownMenuItem onClick={() => alert("Chỉnh sửa")}>
-										Chỉnh sửa
+									<DropdownMenuItem onClick={() => alert("Chuyển tiếp")}>
+										Chuyển tiếp
 									</DropdownMenuItem>
 									<DropdownMenuItem onClick={() => alert("Thu hồi")}>
 										Thu hồi
