@@ -25,6 +25,9 @@ interface ChatBubbleProps {
 	// content: string;
 	// time: string;
 	data: Message;
+	onRecall?: () => void;
+	onForward?: () => void;
+	onEdit?: () => void;
 }
 
 const formatMessageTime = (time: string): string => {
@@ -91,6 +94,9 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 	status = "sent",
 	isOwn = false,
 	data,
+	onRecall,
+	onForward,
+	onEdit,
 }) => {
 
 	const bubbleColor =

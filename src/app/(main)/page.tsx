@@ -407,7 +407,7 @@ const Page: React.FC = () => {
 	// Scroll to bottom when new messages are loaded
 	useEffect(() => {
 		scrollToBottom();
-	}, [isMessagesLoading, messages]);
+	}, [isMessagesLoading]);
 
 
 	// Load older messages when scroll to top
@@ -501,6 +501,12 @@ const Page: React.FC = () => {
 
 					const mappedMessage = mapServerMessageToClient(messageData);
 					dispatch(addMessage({ groupId: messageData.groupId, message: mappedMessage }));
+					dispatch(updateLastMessage({
+						groupId: messageData.groupId,
+						message: messageData.content,
+						time: messageData.createdAt,
+					}));
+					scrollToBottom();
 				}
 			} else {
 				const messageData = {
@@ -527,6 +533,11 @@ const Page: React.FC = () => {
 
 					const mappedMessage = mapServerMessageToClient(messageData);
 					dispatch(addMessage({ groupId: messageData.groupId, message: mappedMessage }));
+					dispatch(updateLastMessage({
+						groupId: messageData.groupId,
+						message: messageData.content,
+						time: messageData.createdAt,
+					}));
 
 					scrollToBottom();
 				}
@@ -873,6 +884,16 @@ const Page: React.FC = () => {
 									status={msg.readBy?.some(id => id !== userProfile?.id) ? "seen" : "sent"}
 									isOwn={msg.senderId === userProfile?.id}
 									data={msg}
+									onRecall={() => {
+										
+									}}
+									onForward={() => {
+
+									}}
+									
+									onEdit={() => {
+
+									}}
 								/>
 							))
 						)
