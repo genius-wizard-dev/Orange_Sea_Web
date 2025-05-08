@@ -480,6 +480,7 @@ const Page: React.FC = () => {
 				formData.append('groupId', activeGroupId);
 				formData.append('senderId', userProfile.id);
 				formData.append('type', 'IMAGE');
+				formData.append('content', text.trim() || "");
 
 				if (text.trim()) {
 					formData.append('message', text.trim());
@@ -501,35 +502,36 @@ const Page: React.FC = () => {
 					const mappedMessage = mapServerMessageToClient(messageData);
 					dispatch(addMessage({ groupId: messageData.groupId, message: mappedMessage }));
 				}
-			}
-
-			const messageData = {
-				groupId: activeGroupId,
-				message: text.trim(),
-				type: 'TEXT',
-				senderId: userProfile.id,
-			};
-			response = await apiService.post(ENDPOINTS.CHAT.SEND, messageData);
-			console.log("🚀 Tin nhắn đã gửi:", response);
-
-			// Xử lý sau khi gửi
-			if (response.status === 'success') {
-
-				const messageData = response.data;
-
-				console.log("🚀 Tin nhắn đã gửi thành công:", messageData);
-
-				socket.emit('send', {
-					messageId: messageData.id,
-					groupId: messageData.groupId,
+			} else {
+				const messageData = {
+					groupId: activeGroupId,
+					message: text.trim(),
+					type: 'TEXT',
 					senderId: userProfile.id,
-				});
+				};
+				response = await apiService.post(ENDPOINTS.CHAT.SEND, messageData);
+				console.log("🚀 Tin nhắn đã gửi:", response);
+				// Xử lý sau khi gửi
+				
+				if (response.status === 'success') {
 
-				const mappedMessage = mapServerMessageToClient(messageData);
-				dispatch(addMessage({ groupId: messageData.groupId, message: mappedMessage }));
+					const messageData = response.data;
 
-				scrollToBottom();
+					console.log("🚀 Tin nhắn đã gửi thành công:", messageData);
+
+					socket.emit('send', {
+						messageId: messageData.id,
+						groupId: messageData.groupId,
+						senderId: userProfile.id,
+					});
+
+					const mappedMessage = mapServerMessageToClient(messageData);
+					dispatch(addMessage({ groupId: messageData.groupId, message: mappedMessage }));
+
+					scrollToBottom();
+				}
 			}
+
 		} catch (error) {
 			console.error("Lỗi khi gửi tin nhắn:", error);
 		}
