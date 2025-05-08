@@ -11,7 +11,7 @@ interface ConversationProps {
 	time: string;
 	unreadCount?: number;
 	activeId?: string | null;
-	online?: boolean;
+	online?: string;
 	onClick?: () => void;
 }
 
@@ -48,9 +48,13 @@ const Conversation: React.FC<ConversationProps> = ({
 							.join("")}
 					</AvatarFallback>
 				</Avatar>
-				{online && (
-					<span className="absolute top-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
-				)}
+				{online === "ACTIVE" ? (
+					<span className="absolute right-0 bottom-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+				) : online === "ONLINE" ? (
+					<span className="absolute right-0 bottom-0 w-3 h-3 bg-yellow-500 border-2 border-white rounded-full"></span>
+				) : online === "OFFLINE" ? (
+					<span className="absolute right-0 bottom-0 w-3 h-3 bg-gray-500 border-2 border-white rounded-full"></span>
+				) : null} 
 			</div>
 
 			{/* Text content */}
@@ -59,7 +63,7 @@ const Conversation: React.FC<ConversationProps> = ({
 					{name.toUpperCase()}
 				</div>
 				<div className={cn('text-sm', active ? 'text-white/80' : 'text-gray-500')}>
-					{message}
+					{message.length > 30 ? message.slice(0, 30) + '...' : message}
 				</div>
 			</div>
 
