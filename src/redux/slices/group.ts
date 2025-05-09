@@ -69,8 +69,31 @@ const groupSlice = createSlice({
 			if (group) {
 				group.participants = action.payload.participants;
 			}
-		}
+		},
 
+		updateGroupName: (state, action: PayloadAction<{ groupId: string; name: string }>) => {
+			const group = state.groups.find((g) => g.id === action.payload.groupId);
+			if (group) {
+				group.name = action.payload.name;
+			}
+		},
+
+		addMember: (state, action: PayloadAction<{ groupId: string; member: any }>) => {
+			const group = state.groups.find((g) => g.id === action.payload.groupId);
+			if (group) {
+				if (group.participants) {
+					group.participants.push(action.payload.member);
+				}
+			}
+		},
+		removeMember: (state, action: PayloadAction<{ groupId: string; memberId: string }>) => {
+			const group = state.groups.find((g) => g.id === action.payload.groupId);
+			if (group) {
+				if (group.participants) {
+					group.participants = group.participants.filter((m) => m.id !== action.payload.memberId);
+				}
+			}
+		},
 
 
 	},
@@ -85,6 +108,9 @@ export const {
 	setUnreadCountsToGroups,
 	updateLastMessage,
 	updateParticipants,
+	updateGroupName,
+	addMember,
+	removeMember,
 } = groupSlice.actions;
 
 export default groupSlice.reducer;
