@@ -6,19 +6,24 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useMemo } from "react";
 import { Friend } from "@/types/friend";
 import { Search } from "lucide-react";
+import apiService from "@/service/api.service";
 
-type CreateConversationDialogProps = {
+import { ENDPOINTS } from "@/service/api.endpoint";
+
+type InviteMenberConversationDialogProps = {
 	isOpen: boolean;
 	onClose: () => void;
 	friends: Friend[];
-	onCreate: (selectedIds: string[]) => void;
+	activeGroupId: string; // Add activeGroupId as a prop
+	addFriend: (selectedIds: string[]) => void;
 };
 
-export const CreateConversationDialog: React.FC<CreateConversationDialogProps> = ({
+export const InviteMenberConversationDialog: React.FC<InviteMenberConversationDialogProps> = ({
 	isOpen,
 	onClose,
 	friends,
-	onCreate,
+	activeGroupId, // Destructure activeGroupId from props
+	addFriend, // Destructure addFiend from props
 }) => {
 	const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
 	const [searchTerm, setSearchTerm] = useState<string>("");
@@ -29,9 +34,9 @@ export const CreateConversationDialog: React.FC<CreateConversationDialogProps> =
 		);
 	};
 
-	const handleCreate = () => {
+	const handleAddFriend = () => {
 		if (selectedFriendIds.length > 0) {
-			onCreate(selectedFriendIds);
+			addFriend(selectedFriendIds);
 			setSelectedFriendIds([]);
 			setSearchTerm("");
 			onClose();
@@ -49,7 +54,7 @@ export const CreateConversationDialog: React.FC<CreateConversationDialogProps> =
 		<Dialog open={isOpen} onOpenChange={onClose}>
 			<DialogContent className="max-w-md">
 				<DialogHeader>
-					<DialogTitle className="text-xl">Tạo đoạn chat mới</DialogTitle>
+					<DialogTitle className="text-xl">Mời bạn bè vào nhóm</DialogTitle>
 				</DialogHeader>
 
 				<div className="py-2">
@@ -70,12 +75,12 @@ export const CreateConversationDialog: React.FC<CreateConversationDialogProps> =
 						) : (
 							filteredFriends.map((friend) => (
 								<div
-									key={friend.profileId}
+									key={friend.id}
 									className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-100 transition"
 								>
 									<Checkbox
-										checked={selectedFriendIds.includes(friend.profileId)}
-										onCheckedChange={() => toggleSelect(friend.profileId)}
+										checked={selectedFriendIds.includes(friend.id)}
+										onCheckedChange={() => toggleSelect(friend.id)}
 									/>
 									{friend.avatar ? (
 										<img
@@ -98,14 +103,42 @@ export const CreateConversationDialog: React.FC<CreateConversationDialogProps> =
 						Huỷ
 					</Button>
 					<Button
-						onClick={() =>{
-							handleCreate();
-							onClose();
-						}}
-						disabled={selectedFriendIds.length === 0}
-					>
-						Tạo
-					</Button>
+    onClick={async () => {
+        try {
+            if (selectedFriendIds.length > 0) {
+                // Gọi API để mời bạn vào nhóm
+				const response = await apiService.post(`${ENDPOINTS.GROUP.ADD_MEMBER}`, {
+					groupId: activeGroupId, // ID của nhóm hiện tại
+					memberIds: selectedFriendIds, // Danh sách ID bạn bè được mời
+				});
+
+				const typedResponse = response as { status: string; data?: any; message?: string };
+				if (typedResponse.status === "success") {
+					console.log("Mời bạn bè thành công:", (response as { data: any }).data);
+
+                    // Reset trạng thái
+                    setSelectedFriendIds([]);
+                    setSearchTerm("");
+                    onClose();
+                } else {
+					const errorResponse = response as { message?: string };
+					console.error("Lỗi khi mời bạn bè:", errorResponse.message || "Unknown error");
+                    alert("Không thể mời bạn bè. Vui lòng thử lại.");
+                }
+            }
+        } catch (error) {
+			if ((error as any)?.response) {
+				console.error("Lỗi từ API:", (error as any).response.data); // Log chi tiết lỗi từ máy chủ
+			} else {
+				console.error("Lỗi không xác định:", error);
+			}
+            alert("Đã xảy ra lỗi khi mời bạn bè. Vui lòng thử lại.");
+        }
+    }}
+    disabled={selectedFriendIds.length === 0}
+>
+    Mời
+</Button>
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>
