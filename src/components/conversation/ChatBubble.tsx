@@ -25,6 +25,9 @@ interface ChatBubbleProps {
 	// content: string;
 	// time: string;
 	data: Message;
+	onRecall?: () => void;
+	onForward?: () => void;
+	onEdit?: () => void;
 }
 
 const formatMessageTime = (time: string): string => {
@@ -91,6 +94,9 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 	status = "sent",
 	isOwn = false,
 	data,
+	onRecall,
+	onForward,
+	onEdit,
 }) => {
 
 	const bubbleColor =
@@ -102,6 +108,10 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 
 	const corner = isOwn
 		? "rounded-tl-2xl rounded-tr-md rounded-bl-2xl rounded-br-2xl"
+		: "rounded-tr-2xl rounded-tl-2xl rounded-bl-md rounded-br-2xl";
+
+	const cornerMedia = isOwn
+		? "rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl rounded-br-md"
 		: "rounded-tr-2xl rounded-tl-2xl rounded-bl-md rounded-br-2xl";
 
 	const renderStatusIcon = () => {
@@ -129,32 +139,47 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 
 		if (data.type === MessageType.IMAGE) {
 			return (
-				<div className="flex flex-col gap-1">
-					<img src={data.fileUrl ?? undefined} alt="image" className="rounded-lg max-w-[240px] max-h-[180px] object-cover" />
-				</div>
+				<>
+					{data.content && (
+						<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, cornerMedia)}>{data.content}</div>
+					)}
+					<div className="flex flex-col gap-1">
+						<img src={data.fileUrl ?? undefined} alt="image" className="rounded-lg max-w-[240px] max-h-[180px] object-cover" />
+					</div>
+				</>
 			);
 		}
 
 		if (data.type === MessageType.VIDEO) {
 			return (
-				<video controls className="rounded-lg max-w-[240px] max-h-[180px]">
-					<source src={data.fileUrl ?? undefined} />
-					Trình duyệt của bạn không hỗ trợ video tag.
-				</video>
+				<>
+					{data.content && (
+						<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, cornerMedia)}>{data.content}</div>
+					)}
+					<video controls className="rounded-lg max-w-[240px] max-h-[180px]">
+						<source src={data.fileUrl ?? undefined} />
+						Trình duyệt của bạn không hỗ trợ video tag.
+					</video>
+				</>
 			);
 		}
 
 		if (data.type === MessageType.RAW) {
 			return (
-				<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, corner)}>
-					<div className="flex items-center gap-2">
-						<FileText className="w-5 h-5" />
-						<span className="truncate max-w-[160px]">{data.fileName || "File đính kèm"}</span>
-						<a href={data.fileUrl ?? undefined} download target="_blank" rel="noopener noreferrer">
-							<Download className="w-5 h-5 text-gray-500 hover:text-gray-700" />
-						</a>
+				<>
+					{data.content && (
+						<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, cornerMedia)}>{data.content}</div>
+					)}
+					<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, corner)}>
+						<div className="flex items-center gap-2">
+							<FileText className="w-5 h-5" />
+							<span className="truncate max-w-[160px]">{data.fileName || "File đính kèm"}</span>
+							<a href={data.fileUrl ?? undefined} download target="_blank" rel="noopener noreferrer">
+								<Download className="w-5 h-5 text-gray-500 hover:text-gray-700" />
+							</a>
+						</div>
 					</div>
-				</div>
+				</>
 			);
 		}
 
@@ -181,7 +206,9 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 
 				{renderContent()}
 
-				<div className="flex items-center justify-end text-xs text-gray-400 mt-1">
+				<div className={cn("flex items-center text-xs text-gray-400 mt-1",
+					isOwn ? "justify-end" : "justify-start",
+				)}>
 					<span>{formatMessageTime(data.createdAt)}</span>
 					{renderStatusIcon()}
 				</div>
