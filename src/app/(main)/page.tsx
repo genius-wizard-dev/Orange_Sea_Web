@@ -22,7 +22,7 @@ import apiService from "@/service/api.service";
 import { ENDPOINTS } from "@/service/api.endpoint";
 import { mapGroupListToGroups } from "@/utils/mapper/mapGroup";
 import { setActiveGroup, setGroups, setUnreadCountsToGroups, updateLastMessage } from "@/redux/slices/group";
-import { addMessage, loadInitialMessages, loadOlderMessages, markMessagesAsRead, setActiveUsers, setUnreadCount, setUserOnlineStatus } from "@/redux/slices/chat";
+import { addMessage, loadInitialMessages, loadOlderMessages, markMessagesAsRead, setActiveUsers, setUnreadCount, setUserOnlineStatus, updateMessage } from "@/redux/slices/chat";
 import { Button } from "@/components/ui/button";
 import { ConversationSkeleton } from "@/components/skeleton/ConversationSkeleton";
 import { mapServerMessageToClient } from "@/utils/mapper/mapChat";
@@ -583,6 +583,139 @@ const Page: React.FC = () => {
 	console.log("Participants:", activeGroup?.participants);
 	console.log("Messages:", messages);
 
+	const handleRecallMessage = async (messageId: string) => {
+		if (!messageId || !activeGroupId || !userProfile?.id) {
+		  console.error("❌ Dữ liệu không hợp lệ để thu hồi tin nhắn.");
+		  return;
+		}
+	  
+		try {
+		  // Gọi API để thu hồi tin nhắn
+		  const response = await apiService.recallMessage(messageId);
+	  
+		  if (response === undefined || response === null || typeof response !== "object" || (response as { status: string }).status !== "success") {
+			console.error("❌ Lỗi từ API khi thu hồi tin nhắn:", response);
+			return;
+		  }
+	  
+		  console.log("🚀 Tin nhắn đã được thu hồi:", response);
+	  
+		  const recalledMessage = (response as { data: { wasLastMessage: boolean; recalledAt: string } }).data;
+	  
+		  // Gửi sự kiện qua WebSocket
+		  socket.emit("recallMessage", {
+			messageId,
+			groupId: activeGroupId,
+			senderId: userProfile.id,
+		  });
+	  
+		  // Cập nhật Redux
+		  dispatch(markMessagesAsRead({
+			groupId: activeGroupId,
+			messageIds: [messageId],
+			profileId: userProfile.id,
+		  }));
+	  
+		  dispatch(updateLastMessage({
+			groupId: activeGroupId,
+			message: "Tin nhắn đã được thu hồi",
+			time: recalledMessage.recalledAt || new Date().toISOString(),
+		  }));
+		} catch (error) {
+		  console.error("❌ Lỗi khi thu hồi tin nhắn:", error);
+		}
+	  };
+	  
+	  const handleForwardMessage = async (messageId: string) => {
+		if (!messageId || !activeGroupId || !userProfile?.id) {
+		  console.error("❌ Dữ liệu không hợp lệ để chuyển tiếp tin nhắn.");
+		  return;
+		}
+	  
+		try {
+		  // Gọi API để chuyển tiếp tin nhắn
+		  const response = await apiService.forwardMessage(messageId, activeGroupId);
+	  
+		  if (response === undefined || response === null || typeof response !== "object" || (response as { status: string }).status !== "success") {
+			console.error("❌ Lỗi từ API khi chuyển tiếp tin nhắn:", response);
+			return;
+		  }
+	  
+		  console.log("🚀 Tin nhắn đã được chuyển tiếp:", response);
+	  
+		  const forwardedMessage = (response as { data: any }).data;
+	  
+		  // Gửi sự kiện qua WebSocket
+		  socket.emit("forwardMessage", {
+			messageId: forwardedMessage.id,
+			groupId: forwardedMessage.groupId,
+			senderId: userProfile.id,
+		  });
+	  
+		  // Cập nhật Redux
+		  const mappedMessage = mapServerMessageToClient(forwardedMessage);
+		  dispatch(addMessage({ groupId: forwardedMessage.groupId, message: mappedMessage }));
+		  dispatch(updateLastMessage({
+			groupId: forwardedMessage.groupId,
+			message: forwardedMessage.content,
+			time: forwardedMessage.createdAt,
+		  }));
+	  
+		  // Cuộn xuống cuối cùng
+		  scrollToBottom();
+		} catch (error) {
+		  console.error("❌ Lỗi khi chuyển tiếp tin nhắn:", error);
+		}
+	  };
+
+	  const handleEditMessage = async (messageId: string, newContent: string) => {
+		if (!messageId || !newContent.trim() || !activeGroupId || !userProfile?.id) return;
+	  
+		try {
+		  // Gọi API để chỉnh sửa tin nhắn
+		  const response = await apiService.editMessage(messageId, newContent);
+		  if (response === undefined || response === null) {
+			console.error("❌ API did not return a valid response for editing the message.");
+			return;
+		  }
+	  
+		  if ((response as { status: string }).status === "success") {
+			console.log("🚀 Tin nhắn đã được chỉnh sửa:", response);
+	  
+			const editedMessage = (response as { data: { wasLastMessage: boolean; editedAt: string } }).data;
+	  
+			// Gửi sự kiện qua WebSocket
+			socket.emit("editMessage", {
+			  messageId,
+			  groupId: activeGroupId,
+			  senderId: userProfile.id,
+			  content: newContent,
+			});
+	  
+			// Cập nhật Redux
+			dispatch(updateMessage({
+			  groupId: activeGroupId,
+			  messageId,
+			  content: newContent,
+			  editedAt: new Date().toISOString(),
+			}));
+	  
+			// Nếu tin nhắn là tin nhắn cuối cùng, cập nhật lastMessage
+			if (editedMessage.wasLastMessage) {
+			  dispatch(updateLastMessage({
+				groupId: activeGroupId,
+				message: newContent,
+				time: editedMessage.editedAt,
+			  }));
+			}
+		  } else {
+			console.error("❌ Lỗi từ API khi chỉnh sửa tin nhắn:", response);
+		  }
+		} catch (error) {
+		  console.error("❌ Lỗi khi chỉnh sửa tin nhắn:", error);
+		}
+	  };
+
 	return (
 		<div className="pt-[60px] flex gap-0 h-screen w-screen overflow-hidden">
 			<StartSidebar>
@@ -884,16 +1017,9 @@ const Page: React.FC = () => {
 									status={msg.readBy?.some(id => id !== userProfile?.id) ? "seen" : "sent"}
 									isOwn={msg.senderId === userProfile?.id}
 									data={msg}
-									onRecall={() => {
-										
-									}}
-									onForward={() => {
-
-									}}
-									
-									onEdit={() => {
-
-									}}
+									onRecall={() => handleRecallMessage(msg.id)}
+									onForward={() => handleForwardMessage(msg.id)}
+									onEdit={() => handleEditMessage(msg.id, "Nội dung mới")}
 								/>
 							))
 						)
@@ -939,6 +1065,9 @@ const Page: React.FC = () => {
 				friends={listFriend} // Pass the friends array from the state
 				onCreate={(selectedFriendIds) => {
 					console.log("Tạo cuộc trò chuyện với bạn bè:", selectedFriendIds);
+					// Gọi API để tạo cuộc trò chuyện mới với selectedFriendIds
+					// Sau khi tạo thành công, bạn có thể cập nhật lại danh sách nhóm
+
 					setIsCreateConversationOpen(false);
 				}}
 			/>
