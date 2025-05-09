@@ -53,16 +53,13 @@ import { useDispatch, useSelector } from "react-redux";
 import { Socket } from "socket.io-client";
 
 const Page: React.FC = () => {
-  const dispatch = useDispatch();
-  const { profile: userProfile } = useSelector(
-    (state: RootState) => state.profile
-  );
-  const { friend: listFriend } = useSelector(
-    (state: RootState) => state.friend
-  );
 
-  const [text, setText] = useState<string>("");
-  const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
+	const dispatch = useDispatch();
+	const { profile: userProfile } = useSelector((state: RootState) => state.profile);
+	const { friend: listFriend } = useSelector((state: RootState) => state.friend);
+console.log("List friend:", listFriend);
+	const [text, setText] = useState<string>("");
+	const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
 
   // Loading
   const [isMessagesLoading, setIsMessagesLoading] = useState<boolean>(true);
@@ -787,27 +784,62 @@ const Page: React.FC = () => {
         onOpenChange={handleSearchFriendOpenChange}
       />
 
-      <CreateConversationDialog
-        isOpen={isCreateConversationOpen}
-        onClose={() => setIsCreateConversationOpen(false)}
-        friends={listFriend} // Pass the friends array from the state
-        onCreate={(selectedFriendIds) => {
-          console.log("Tạo cuộc trò chuyện với bạn bè:", selectedFriendIds);
-          setIsCreateConversationOpen(false);
-        }}
-      />
+			<CreateConversationDialog
+    isOpen={isCreateConversationOpen}
+    onClose={() => setIsCreateConversationOpen(false)} // Đóng dialog
+    friends={listFriend} // Danh sách bạn bè
+    onCreate={async (selectedFriendIds) => {
+        console.log("Tạo cuộc trò chuyện với bạn bè:", selectedFriendIds);
 
-      <ForwardMessageDialog
-        open={isForwardOpen}
-        onClose={() => setIsForwarOpen(false)}
-        onForward={(selectedMessages) => {
-          console.log("Tin nhắn đã được chuyển tiếp:", selectedMessages);
-        }}
-        groups={groups} // Pass the groups array from the state
-      />
-      
-    </div>
-  );
+        try {
+            // Gọi API để tạo nhóm
+            const response: any = await apiService.post(ENDPOINTS.GROUP.CREATE, {
+                participantIds: selectedFriendIds,
+            });
+
+            // Kiểm tra phản hồi từ API
+            
+                if (response.id) {
+					const responseData = response;
+					console.log("Nhóm được tạo thành công:", responseData.data);
+
+                    // Cập nhật danh sách nhóm trong Redux
+					const newGroup = (response as { status: string; data: any }).data;
+                    dispatch(setGroups([...groups, newGroup]));
+
+                    // Đặt nhóm mới làm nhóm hoạt động
+                    dispatch(setActiveGroup(newGroup.id));
+
+                    // Đóng dialog
+                    setIsCreateConversationOpen(false);
+                } else {
+					console.error("Lỗi khi tạo nhóm:", (response as { message?: string }).message || "Unknown error");
+                    alert("Không thể tạo nhóm. Vui lòng thử lại.");
+                }
+        } catch (error) {
+            if (error.response) {
+                console.error("Lỗi từ API:", error.response.data); // Log chi tiết lỗi từ máy chủ
+            } else {
+                console.error("Lỗi không xác định:", error);
+            }
+            alert("Đã xảy ra lỗi khi tạo nhóm. Vui lòng thử lại.");
+        }
+    }}
+/>
+
+			<ForwardMessageDialog
+				open={isForwardOpen}
+				onClose={() => setIsForwarOpen(false)}
+				onForward={(selectedMessages) => {
+					console.log("Tin nhắn đã được chuyển tiếp:", selectedMessages);
+					
+				}}
+				groups={groups} // Pass the groups array from the state
+			/>
+
+		</div >
+
+	);
 };
 
 export default Page;

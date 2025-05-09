@@ -134,6 +134,21 @@ const chatSlice = createSlice({
 
 			state.cursorsByGroup[groupId] = nextCursor;
 			state.hasMoreByGroup[groupId] = hasMore;
+		},
+
+		updateMessage: (
+			state,
+			action: PayloadAction<{ groupId: string; messageId: string; content: string; editedAt: string }>
+		) => {
+			const { groupId, messageId, content, editedAt } = action.payload;
+			const groupMessages = state.messagesByGroup[groupId];
+			if (groupMessages) {
+			  const message = groupMessages.find((msg) => msg.id === messageId);
+			  if (message) {
+				message.content = content;
+				message.editedAt = editedAt;
+			  }
+			}
 		}
 	},
 });
@@ -147,6 +162,7 @@ export const {
 	setUserOnlineStatus,
 	loadOlderMessages,
 	loadInitialMessages,
+	updateMessage,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;
