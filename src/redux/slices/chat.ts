@@ -5,7 +5,6 @@ interface ChatState {
 	messagesByGroup: Record<string, Message[]>; // groupId -> messages
 	unreadCount: Record<string, number>; // groupId -> unreadCount
 	activeUsersByGroup: Record<string, string[]>; // groupId -> profileIds
-	onlineUsersByGroup: Record<string, string[]>; // groupId -> profileIds
 	cursorsByGroup: Record<string, string | null>; // groupId -> cursor for pagination
 	hasMoreByGroup: Record<string, boolean>; // groupId -> whether there are more messages to load
 }
@@ -14,7 +13,6 @@ const initialState: ChatState = {
 	messagesByGroup: {},
 	unreadCount: {},
 	activeUsersByGroup: {},
-	onlineUsersByGroup: {},
 	cursorsByGroup: {},
 	hasMoreByGroup: {},
 };
@@ -92,34 +90,18 @@ const chatSlice = createSlice({
 				groupId: string;
 				profileId: string;
 				isActive: boolean;
-				isOnline: boolean;
 			}>
 		) => {
-			const { groupId, profileId, isActive, isOnline } = action.payload;
+			const { groupId, profileId, isActive } = action.payload;
 			const list = state.activeUsersByGroup[groupId] || [];
-			if (isActive) {
-				if (!list.includes(profileId)) {
-					list.push(profileId);
-				}
+
+			if (isActive && !list.includes(profileId)) {
+				list.push(profileId);
+			} else if (!isActive) {
+				state.activeUsersByGroup[groupId] = list.filter((id) => id !== profileId);
 			} else {
-				const index = list.indexOf(profileId);
-				if (index !== -1) {
-					list.splice(index, 1);
-				}
+				state.activeUsersByGroup[groupId] = list;
 			}
-			state.activeUsersByGroup[groupId] = list;
-			const onlineList = state.onlineUsersByGroup[groupId] || [];
-			if (isOnline) {
-				if (!onlineList.includes(profileId)) {
-					onlineList.push(profileId);
-				}
-			} else {
-				const index = onlineList.indexOf(profileId);
-				if (index !== -1) {
-					onlineList.splice(index, 1);
-				}
-			}
-			state.onlineUsersByGroup[groupId] = onlineList;
 		},
 
 		loadOlderMessages: (
