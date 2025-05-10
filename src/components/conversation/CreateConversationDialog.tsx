@@ -11,7 +11,7 @@ type CreateConversationDialogProps = {
 	isOpen: boolean;
 	onClose: () => void;
 	friends: Friend[];
-	onCreate: (selectedIds: string[]) => void;
+	onCreate: (selectedIds: string[], groupName: string) => void;
 };
 
 export const CreateConversationDialog: React.FC<CreateConversationDialogProps> = ({
@@ -22,6 +22,7 @@ export const CreateConversationDialog: React.FC<CreateConversationDialogProps> =
 }) => {
 	const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
 	const [searchTerm, setSearchTerm] = useState<string>("");
+	const [groupName, setGroupName] = useState<string>(""); // State cho tên nhóm
 
 	const toggleSelect = (id: string) => {
 		setSelectedFriendIds((prev) =>
@@ -31,9 +32,10 @@ export const CreateConversationDialog: React.FC<CreateConversationDialogProps> =
 
 	const handleCreate = () => {
 		if (selectedFriendIds.length > 0) {
-			onCreate(selectedFriendIds);
+			onCreate(selectedFriendIds, groupName);
 			setSelectedFriendIds([]);
 			setSearchTerm("");
+			setGroupName(""); // Reset tên nhóm
 			onClose();
 		}
 	};
@@ -51,6 +53,14 @@ export const CreateConversationDialog: React.FC<CreateConversationDialogProps> =
 				<DialogHeader>
 					<DialogTitle className="text-xl">Tạo đoạn chat mới</DialogTitle>
 				</DialogHeader>
+
+				<div className="py-2">
+                    <Input
+                        placeholder="Tên nhóm..."
+                        value={groupName}
+                        onChange={(e) => setGroupName(e.target.value)}
+                    />
+                </div>
 
 				<div className="py-2">
 					<Input
@@ -102,7 +112,7 @@ export const CreateConversationDialog: React.FC<CreateConversationDialogProps> =
 							handleCreate();
 							onClose();
 						}}
-						disabled={selectedFriendIds.length === 0}
+						disabled={selectedFriendIds.length === 0  || groupName.trim() === ""}
 					>
 						Tạo
 					</Button>

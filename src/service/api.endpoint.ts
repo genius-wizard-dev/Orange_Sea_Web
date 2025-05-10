@@ -56,5 +56,6 @@ export const ENDPOINTS = {
     UNREAD_COUNTS: `${BASE_ENDPOINT}/chat/unread-counts`,
     REACTIONS: (messageId: string) => `${BASE_ENDPOINT}/chat/message/${messageId}/reactions`,
     ADD_REACTION: (messageId: string) => `${BASE_ENDPOINT}/chat/message/${messageId}/reaction`,
+    EDIT: (messageId: string) => `${BASE_ENDPOINT}/chat/edit/${messageId}`,
   }
 };

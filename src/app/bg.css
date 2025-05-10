@@ -20,6 +20,7 @@
 	border-radius: 50%;
 	/* box-shadow: 0 0 80px rgba(255, 119, 0, 0.6); */
 	z-index: -20;
+	animation: sunDriftStepLob 50s ease-in-out infinite;
 }
 
 /* Biển */
@@ -44,4 +45,108 @@
 	position: fixed;
 	width: 100%;
 	bottom: 0;
+}
+
+@keyframes sunDriftStepLob {
+  0%    { transform: translateX(-50%) translateY(0); }
+  1%    { transform: translateX(-50%) translateY(1px); }
+  2%    { transform: translateX(-50%) translateY(2px); }
+  3%    { transform: translateX(-50%) translateY(3px); }
+  4%    { transform: translateX(-50%) translateY(4px); }
+  5%    { transform: translateX(-50%) translateY(5px); }
+  6%    { transform: translateX(-50%) translateY(6px); }
+  7%    { transform: translateX(-50%) translateY(7px); }
+  8%    { transform: translateX(-50%) translateY(8px); }
+  9%    { transform: translateX(-50%) translateY(9px); }
+  10%   { transform: translateX(-50%) translateY(10px); }
+  11%   { transform: translateX(-50%) translateY(9px); }
+  12%   { transform: translateX(-50%) translateY(8px); }
+  13%   { transform: translateX(-50%) translateY(7px); }
+  14%   { transform: translateX(-50%) translateY(6px); }
+  15%   { transform: translateX(-50%) translateY(5px); }
+  16%   { transform: translateX(-50%) translateY(4px); }
+  17%   { transform: translateX(-50%) translateY(3px); }
+  18%   { transform: translateX(-50%) translateY(2px); }
+  19%   { transform: translateX(-50%) translateY(1px); }
+  20%   { transform: translateX(-50%) translateY(0); }
+  21%   { transform: translateX(-50%) translateY(-1px); }
+  22%   { transform: translateX(-50%) translateY(-2px); }
+  23%   { transform: translateX(-50%) translateY(-3px); }
+  24%   { transform: translateX(-50%) translateY(-4px); }
+  25%   { transform: translateX(-50%) translateY(-5px); }
+  26%   { transform: translateX(-50%) translateY(-6px); }
+  27%   { transform: translateX(-50%) translateY(-7px); }
+  28%   { transform: translateX(-50%) translateY(-8px); }
+  29%   { transform: translateX(-50%) translateY(-9px); }
+  30%   { transform: translateX(-50%) translateY(-10px); }
+  31%   { transform: translateX(-50%) translateY(-9px); }
+  32%   { transform: translateX(-50%) translateY(-8px); }
+  33%   { transform: translateX(-50%) translateY(-7px); }
+  34%   { transform: translateX(-50%) translateY(-6px); }
+  35%   { transform: translateX(-50%) translateY(-5px); }
+  36%   { transform: translateX(-50%) translateY(-4px); }
+  37%   { transform: translateX(-50%) translateY(-3px); }
+  38%   { transform: translateX(-50%) translateY(-2px); }
+  39%   { transform: translateX(-50%) translateY(-1px); }
+  40%   { transform: translateX(-50%) translateY(0); }
+  41%   { transform: translateX(-50%) translateY(1px); }
+  42%   { transform: translateX(-50%) translateY(2px); }
+  43%   { transform: translateX(-50%) translateY(3px); }
+  44%   { transform: translateX(-50%) translateY(4px); }
+  45%   { transform: translateX(-50%) translateY(5px); }
+  46%   { transform: translateX(-50%) translateY(6px); }
+  47%   { transform: translateX(-50%) translateY(7px); }
+  48%   { transform: translateX(-50%) translateY(8px); }
+  49%   { transform: translateX(-50%) translateY(9px); }
+  50%   { transform: translateX(-50%) translateY(10px); }
+  51%   { transform: translateX(-50%) translateY(9px); }
+  52%   { transform: translateX(-50%) translateY(8px); }
+  53%   { transform: translateX(-50%) translateY(7px); }
+  54%   { transform: translateX(-50%) translateY(6px); }
+  55%   { transform: translateX(-50%) translateY(5px); }
+  56%   { transform: translateX(-50%) translateY(4px); }
+  57%   { transform: translateX(-50%) translateY(3px); }
+  58%   { transform: translateX(-50%) translateY(2px); }
+  59%   { transform: translateX(-50%) translateY(1px); }
+  60%   { transform: translateX(-50%) translateY(0); }
+  61%   { transform: translateX(-50%) translateY(-1px); }
+  62%   { transform: translateX(-50%) translateY(-2px); }
+  63%   { transform: translateX(-50%) translateY(-3px); }
+  64%   { transform: translateX(-50%) translateY(-4px); }
+  65%   { transform: translateX(-50%) translateY(-5px); }
+  66%   { transform: translateX(-50%) translateY(-6px); }
+  67%   { transform: translateX(-50%) translateY(-7px); }
+  68%   { transform: translateX(-50%) translateY(-8px); }
+  69%   { transform: translateX(-50%) translateY(-9px); }
+  70%   { transform: translateX(-50%) translateY(-10px); }
+  71%   { transform: translateX(-50%) translateY(-9px); }
+  72%   { transform: translateX(-50%) translateY(-8px); }
+  73%   { transform: translateX(-50%) translateY(-7px); }
+  74%   { transform: translateX(-50%) translateY(-6px); }
+  75%   { transform: translateX(-50%) translateY(-5px); }
+  76%   { transform: translateX(-50%) translateY(-4px); }
+  77%   { transform: translateX(-50%) translateY(-3px); }
+  78%   { transform: translateX(-50%) translateY(-2px); }
+  79%   { transform: translateX(-50%) translateY(-1px); }
+  80%   { transform: translateX(-50%) translateY(0); }
+  81%   { transform: translateX(-50%) translateY(1px); }
+  82%   { transform: translateX(-50%) translateY(2px); }
+  83%   { transform: translateX(-50%) translateY(3px); }
+  84%   { transform: translateX(-50%) translateY(4px); }
+  85%   { transform: translateX(-50%) translateY(5px); }
+  86%   { transform: translateX(-50%) translateY(6px); }
+  87%   { transform: translateX(-50%) translateY(7px); }
+  88%   { transform: translateX(-50%) translateY(8px); }
+  89%   { transform: translateX(-50%) translateY(9px); }
+  90%   { transform: translateX(-50%) translateY(10px); }
+  91%   { transform: translateX(-50%) translateY(9px); }
+  92%   { transform: translateX(-50%) translateY(8px); }
+  93%   { transform: translateX(-50%) translateY(7px); }
+  94%   { transform: translateX(-50%) translateY(6px); }
+  95%   { transform: translateX(-50%) translateY(5px); }
+  96%   { transform: translateX(-50%) translateY(4px); }
+  97%   { transform: translateX(-50%) translateY(3px); }
+  98%   { transform: translateX(-50%) translateY(2px); }
+  99%   { transform: translateX(-50%) translateY(1px); }
+  100%  { transform: translateX(-50%) translateY(0); }
 }

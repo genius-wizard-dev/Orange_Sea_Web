@@ -1,40 +1,46 @@
-import { Group } from "@/redux/slices/group";
+
+import { Group } from "@/types/group";
+import { MessageType } from "@/types/message";
 
 export const mapGroupListToGroups = (
 	groupList: any[],
 	currentProfileId: string
 ): Group[] => {
-	return groupList.map((group) => {
-		const lastMessage = group.messages?.[0];
-
-		let name = group.name;
-		let avatarUrl: string | undefined;
-
-		if (!group.isGroup) {
-			// Lọc ra participant KHÔNG PHẢI chính mình
-			const otherParticipant = group.participants.find(
-				(p: any) => p.user?.id !== currentProfileId
-			);
-
-			if (otherParticipant?.user) {
-				name = otherParticipant.user.name;
-				avatarUrl = otherParticipant.user.avatar;
-			}
-		}
+	return groupList.map((raw) => {
+		const lastMessage = raw.messages?.[0];
 
 		return {
-			id: group.id,
-			name: name ?? "Unnamed Group",
-			avatarUrl,
-			lastMessage: lastMessage?.content ?? "",
-			lastMessageAt: lastMessage?.createdAt ?? null,
-			isGroup: group.isGroup ?? true,
-			unreadCount: group.unreadCount ?? 0,
-			participants: group.participants.map((p: any) => ({
-				id: p.user?.id,
-				name: p.user?.name,
-				avatarUrl: p.user?.avatar,
-			})),
+			id: raw.id,
+			name: raw.name,
+			avatarUrl: raw.avatar ?? undefined,
+			isGroup: raw.isGroup ?? false,
+			ownerId: raw.ownerId,
+			createdAt: raw.createdAt,
+			updatedAt: raw.updatedAt,
+			lastMessage: lastMessage
+				? {
+						id: lastMessage.id,
+						content: lastMessage.content,
+						senderId: lastMessage.senderId,
+						fileUrl: lastMessage.fileUrl ?? undefined,
+						createdAt: lastMessage.createdAt,
+						updatedAt: lastMessage.updatedAt,
+						isRecalled: lastMessage.isRecalled ?? false,
+						type: lastMessage.type as MessageType,
+						fileName: lastMessage.fileName ?? undefined,
+				  }
+				: undefined,
+			unreadCount: 0, // hoặc cập nhật từ backend nếu có
+			participants: raw.participants
+				?.filter((p: any) => p.userId !== currentProfileId)
+				.map((p: any) => ({
+					id: p.id,
+					userId: p.userId,
+					role: p.role,
+					joinedAt: p.joinedAt,
+					name: p.user?.name ?? '',
+					avatarUrl: p.user?.avatar ?? undefined,
+				})),
 		};
 	});
 };

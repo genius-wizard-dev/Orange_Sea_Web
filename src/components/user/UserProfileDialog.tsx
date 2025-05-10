@@ -1,9 +1,17 @@
-"use client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import { AppDispatch } from "@/redux/store";
-import { getRequested } from "@/redux/thunks/friend";
+import { RootState } from "@/redux/slices";
+import {
+  sendFriendRequest,
+  acceptFriendRequest,
+  rejectFriendRequest,
+  cancelFriendRequest,
+  getFriend,
+  getRequested,
+  getReceived,
+} from "@/redux/thunks/friend";
 import { ENDPOINTS } from "@/service/api.endpoint";
 import apiService from "@/service/api.service";
 import { Profile } from "@/types/profile";
@@ -16,15 +24,18 @@ import {
   Phone,
   User,
   UserPlus,
+  UserMinus,
+  Clock,
+  Loader2,
 } from "lucide-react";
 import { useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 
 interface UserProfileDialogProps {
   isOpen: boolean;
   onOpenChange: any;
-  userProfile: Profile | null;
+  userProfile: Profile;
 }
 
 const formatDate = (dateString: string | null) => {
@@ -42,45 +53,72 @@ const UserProfileDialog: React.FC<UserProfileDialogProps> = ({
   onOpenChange,
   userProfile,
 }) => {
-  if (!userProfile) return null;
 
-  const dispatch: AppDispatch = useDispatch();
-
-  const [addFriendButtonContent, setAddFriendButtonContent] = useState<boolean>(false);
-
-  const [pendingCancelRequest, setPendingCancelRequest] = useState<
-    string | null
-  >(null);
-  const [pendingSendRequest, setPendingSendRequest] = useState<string | null>(
-    null
+  const dispatch = useDispatch<AppDispatch>();
+  const { friend, requested, received } =
+    useSelector((s: RootState) => s.friend);
+  const isFriend = friend.some((f) => f.profileId === userProfile.id);
+  const sentRequest = requested.find((r) => r.profileId === userProfile.id);
+  const receivedRequest = received.find(
+    (r) => r.profileId === userProfile.id
   );
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
 
-  const handleSendFriendRequest = (userId: string) => {
-    setPendingSendRequest(userId);
-    apiService
-      .post(ENDPOINTS.FRIEND.SEND_REQUEST, { receiverId: userId })
-      .then(async (response: any) => {
-        if (response.status === "PENDING") {
-          toast.success("Đã gửi lời mời kết bạn");
-          await dispatch(getRequested() as any);
-          setAddFriendButtonContent(true);
-        }
-      })
-      .catch(async (error) => {
-        console.error("Error sending friend request:", error);
-        if (
-          error.message?.includes("Yêu cầu kết bạn đã tồn tại") ||
-          error?.response?.data?.message?.includes("Yêu cầu kết bạn đã tồn tại")
-        ) {
-          toast.error("Yêu cầu kết bạn đã tồn tại");
-        } else {
-          toast.error(error.message || "Không thể gửi lời mời kết bạn");
-        }
-        await dispatch(getRequested() as any);
-      })
-      .finally(() => {
-        setPendingSendRequest(null);
-      });
+  const handleSend = async (id: string) => {
+    setPendingAction(id);
+    try {
+      await dispatch(sendFriendRequest(id)).unwrap();
+      toast.success("Đã gửi lời mời kết bạn");
+      await Promise.all([dispatch(getRequested()), dispatch(getFriend())]);
+    } catch (err: any) {
+      toast.error(err || "Không thể gửi lời mời");
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const handleCancel = async (id: string) => {
+    setPendingAction(id);
+    try {
+      await dispatch(cancelFriendRequest(id)).unwrap();
+      toast.success(isFriend ? "Hủy kết bạn thành công" : "Thu hồi lời mời thành công");
+      await Promise.all([
+        dispatch(getFriend()),
+        dispatch(getRequested()),
+        dispatch(getReceived()),
+      ]);
+    } catch {
+      toast.error("Không thể hoàn tác");
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const handleAccept = async (id: string) => {
+    setPendingAction(id);
+    try {
+      await dispatch(acceptFriendRequest(id)).unwrap();
+      toast.success("Đã chấp nhận lời mời");
+      await Promise.all([dispatch(getFriend()), dispatch(getReceived())]);
+    } catch {
+      toast.error("Không thể chấp nhận");
+    } finally {
+      
+      setPendingAction(null);
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    setPendingAction(id);
+    try {
+      await dispatch(rejectFriendRequest(id)).unwrap();
+      toast.success("Đã từ chối lời mời");
+      await dispatch(getReceived());
+    } catch {
+      toast.error("Không thể từ chối");
+    } finally {
+      setPendingAction(null);
+    }
   };
 
   function InfoItem({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
@@ -118,28 +156,98 @@ const UserProfileDialog: React.FC<UserProfileDialogProps> = ({
 
           {/* Buttons */}
           <div className="flex flex-row gap-4 w-full">
-            <Button
-              variant="default"
-              className="flex-1 flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 transition"
-            >
-              <MessageCircleMore className="h-4 w-4" />
-              Nhắn tin
-            </Button>
+            {/* Only Friend can Message */}
+            {isFriend && (
+              <Button
+                variant="outline"
+                className="flex-1 flex items-center justify-center gap-2"
+                onClick={() => {}}
+              >
+                <MessageCircleMore className="h-4 w-4" />
+                Nhắn tin
+              </Button>
+            )}
 
-            <Button
-              variant="outline"
-              className="flex-1 flex items-center justify-center gap-2 transition"
-              onClick={() => {
-                if (addFriendButtonContent) {
-                  toast.error("Đã gửi lời mời kết bạn");
-                  return;
+            {/* 1) new request */}
+            {!isFriend && !sentRequest && !receivedRequest && (
+              <Button
+                variant="outline"
+                className="flex-1 flex items-center justify-center gap-2"
+                disabled={pendingAction === userProfile.id}
+                onClick={() => handleSend(userProfile.id)}
+              >
+                {pendingAction === userProfile.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <UserPlus className="h-4 w-4" />
+                )}
+                Kết bạn
+              </Button>
+            )}
+
+            {/* 2) cancel sent request */}
+            {sentRequest && (
+              <Button
+                variant="outline"
+                className="flex-1 flex items-center justify-center gap-2"
+                disabled={pendingAction === sentRequest.id}
+                onClick={() => handleCancel(sentRequest.id)}
+              >
+                {pendingAction === sentRequest.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Clock className="h-4 w-4" />
+                )}
+                Thu hồi
+              </Button>
+            )}
+
+            {/* 3) incoming request */}
+            {receivedRequest && (
+              <>
+                <Button
+                  variant="default"
+                  className="flex-1 flex items-center justify-center gap-2"
+                  disabled={pendingAction === receivedRequest.id}
+                  onClick={() => handleAccept(receivedRequest.id)}
+                >
+                  {pendingAction === receivedRequest.id && (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  )}
+                  Chấp nhận
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="flex-1 flex items-center justify-center gap-2"
+                  disabled={pendingAction === receivedRequest.id}
+                  onClick={() => handleReject(receivedRequest.id)}
+                >
+                  Xóa
+                </Button>
+              </>
+            )}
+
+            {/* 4) already friends */}
+            {isFriend && (
+              <Button
+                variant="destructive"
+                className="flex-1 flex items-center justify-center gap-2"
+                disabled={pendingAction === friend.find((f) => f.profileId === userProfile.id)!.id}
+                onClick={() =>
+                  handleCancel(
+                    friend.find((f) => f.profileId === userProfile.id)!.id
+                  )
                 }
-                handleSendFriendRequest(userProfile.id);
-              }}
-            >
-              <UserPlus className="h-4 w-4" />
-              Kết bạn
-            </Button>
+              >
+                {pendingAction ===
+                friend.find((f) => f.profileId === userProfile.id)!.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <UserMinus className="h-4 w-4" />
+                )}
+                Hủy kết bạn
+              </Button>
+            )}
           </div>
 
           {/* Thông tin liên lạc */}
@@ -152,8 +260,6 @@ const UserProfileDialog: React.FC<UserProfileDialogProps> = ({
         </div>
       </DialogContent>
     </Dialog>
-
-
   );
 };
 export default UserProfileDialog;

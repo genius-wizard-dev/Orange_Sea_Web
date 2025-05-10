@@ -1,15 +1,17 @@
 import { Group } from "@/types/group";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-
+import { fetchGroupList } from "../thunks/group";
 
 interface GroupState {
 	groups: Group[];
 	activeGroupId: string | null;
+	state: "idle" | "loading" | "succeeded" | "failed";
 }
 
 const initialState: GroupState = {
 	groups: [],
 	activeGroupId: null,
+	state: "idle",
 };
 
 const groupSlice = createSlice({
@@ -53,14 +55,36 @@ const groupSlice = createSlice({
 		},
 		updateLastMessage: (
 			state,
-			action: PayloadAction<{ groupId: string; message: string; time: string }>
+			action: PayloadAction<{
+				groupId: string;
+				message: any;
+				isRecalled?: boolean;
+			}>
 		) => {
 			const group = state.groups.find((g) => g.id === action.payload.groupId);
-			if (group) {
-				group.lastMessage = action.payload.message;
-				group.lastMessageAt = action.payload.time;
+			if (!group) return;
+
+			if(action.payload.isRecalled) {
+				if (group.lastMessage) {
+					group.lastMessage.isRecalled = action.payload.isRecalled;
+				}
+			} else {
+				const message = action.payload.message;
+
+				group.lastMessage = {
+					id: message.id,
+					content: message.content,
+					fileUrl: message.fileUrl ?? undefined,
+					createdAt: message.createdAt,
+					updatedAt: message.updatedAt,
+					isRecalled: message.isRecalled ?? false,
+					type: message.type,
+					fileName: message.fileName ?? undefined,
+					senderId: message.sender ? message.sender.id : message.senderId,
+				};
 			}
 		},
+
 		updateParticipants: (
 			state,
 			action: PayloadAction<{ groupId: string; participants: Group["participants"] }>
@@ -70,7 +94,6 @@ const groupSlice = createSlice({
 				group.participants = action.payload.participants;
 			}
 		},
-
 		updateGroupName: (state, action: PayloadAction<{ groupId: string; name: string }>) => {
 			const group = state.groups.find((g) => g.id === action.payload.groupId);
 			if (group) {
@@ -94,9 +117,22 @@ const groupSlice = createSlice({
 				}
 			}
 		},
-
-
 	},
+	extraReducers: (builder) => {
+		builder
+			.addCase(fetchGroupList.fulfilled, (state, action: PayloadAction<Group[]>) => {
+				state.groups = action.payload;
+				state.state = "succeeded";
+			})
+			.addCase(fetchGroupList.pending, (state) => {
+				state.state = "loading";
+			})
+			.addCase(fetchGroupList.rejected, (state, action) => {
+				state.state = "failed";
+				console.error("Failed to fetch groups:", action.error.message);
+			});
+	},
+
 });
 
 export const {

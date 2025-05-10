@@ -186,11 +186,13 @@ const TopNavigation: React.FC = () => {
         onOpenChange={handleFriendOpenChange}
       />
 
-      <UserProfileDialog
-        isOpen={isModalOpen}
-        onOpenChange={() => dispatch(closeUserModal())}
-        userProfile={modalProfile}
-      />
+       {modalProfile && (
+        <UserProfileDialog
+          isOpen={isModalOpen}
+          onOpenChange={() => dispatch(closeUserModal())}
+          userProfile={modalProfile}
+        />
+      )}
     </>
   );
 };
