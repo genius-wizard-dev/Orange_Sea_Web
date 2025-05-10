@@ -39,7 +39,8 @@ export const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
 	};
 	const list = groups;
 	const filteredGroups = list.filter((group) =>
-		group.name?.toLowerCase().includes(searchTerm.toLowerCase())
+		// group.name?.toLowerCase().includes(searchTerm.toLowerCase())
+		true
 	);
 
 	return (
@@ -67,15 +68,15 @@ export const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
 								onClick={() => toggleSelect(group.id)}
 							>
 								<Avatar className="w-8 h-8">
-									<AvatarImage src={group.avatarUrl} alt={group.name} />
+									<AvatarImage src={group.avatarUrl} alt={group.isGroup ? group.name : group.participants?.[0].name} />
 									<AvatarFallback>
-										{group.name
+										{(group.isGroup ? group.name : group.participants?.[0]?.name ?? "Unknown")
 											.split(" ")
 											.map((n) => n[0])
 											.join("")}
 									</AvatarFallback>
 								</Avatar>
-								<span className="ml-2">{group.name}</span>
+								<span className="ml-2">{group.isGroup ? group.name : group.participants?.[0].name }</span>
 							</div>
 						))}
 					</div>

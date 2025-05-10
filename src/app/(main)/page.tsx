@@ -32,8 +32,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { CreateConversationDialog } from "@/components/conversation/CreateConversationDialog";
 import { ForwardMessageDialog } from "@/components/conversation/ForwardMessageDialog";
 import { Group } from "@/types/group";
-import { m } from "framer-motion";
-import { profile } from "console";
+import { toast } from "sonner";
+
 
 
 const Page: React.FC = () => {
@@ -727,13 +727,13 @@ const Page: React.FC = () => {
 													<Conversation
 														key={group.id}
 														id={group.id}
-														name={group.name}
+														name={group.isGroup ? group.name ?? "" : group.participants?.find(p => p.id !== userProfile?.id)?.name ?? ""}
 														message={group.lastMessage}
 														time={group.lastMessage?.updatedAt ?? group.lastMessage?.createdAt ?? ""} // Bạn có thể định dạng từ `group.lastMessageAt` nếu có
 														unreadCount={count}
 														activeId={activeGroupId}
 														online={online}
-														avatarUrl={group.avatarUrl}
+															avatarUrl={group.isGroup ? group.avatarUrl : group.participants?.find(p => p.id !== userProfile?.id)?.avatarUrl}
 														onClick={() => handleClickConversation(group.id)}
 													/>
 												);
@@ -790,13 +790,13 @@ const Page: React.FC = () => {
 													<Conversation
 														key={group.id}
 														id={group.id}
-														name={group.name}
+														name={group.isGroup ? group.name ?? "" : group.participants?.find(p => p.id !== userProfile?.id)?.name ?? ""}
 														message={group.lastMessage}
 														time={group.lastMessage?.updatedAt ?? group.lastMessage?.createdAt ?? ""} // Bạn có thể định dạng từ `group.lastMessageAt` nếu có
 														unreadCount={count}
 														activeId={activeGroupId}
 														online={online}
-														avatarUrl={group.avatarUrl}
+															avatarUrl={group.isGroup ? group.avatarUrl : group.participants?.find(p => p.id !== userProfile?.id)?.avatarUrl}
 														onClick={() => handleClickConversation(group.id)}
 													/>
 												);
@@ -832,13 +832,13 @@ const Page: React.FC = () => {
 														<Conversation
 															key={group.id}
 															id={group.id}
-															name={group.name}
+															name={group.isGroup ? group.name ?? "" : group.participants?.find(p => p.id !== userProfile?.id)?.name ?? ""}
 															message={group.lastMessage}
 															time={group.lastMessage?.updatedAt ?? group.lastMessage?.createdAt ?? ""} // Bạn có thể định dạng từ `group.lastMessageAt` nếu có
 															unreadCount={count}
 															activeId={activeGroupId}
 															online={online}
-															avatarUrl={group.avatarUrl}
+															avatarUrl={group.isGroup ? group.avatarUrl : group.participants?.find(p => p.id !== userProfile?.id)?.avatarUrl}
 															onClick={() => handleClickConversation(group.id)}
 														/>
 													)
@@ -882,7 +882,7 @@ const Page: React.FC = () => {
 							<ChevronLeft className="w-5 h-5" />
 						</button>
 						<Avatar className="w-10 h-10 rounded-full overflow-hidden">
-							<AvatarImage src={activeGroup?.avatarUrl} alt="Avatar" />
+							<AvatarImage src={activeGroup?.isGroup ? activeGroup.avatarUrl : activeGroup?.participants?.[0].avatarUrl} alt="Avatar" />
 							<AvatarFallback>
 								{activeGroup?.name
 									?.split(" ")
@@ -894,7 +894,7 @@ const Page: React.FC = () => {
 						</Avatar>
 
 						<div className="flex flex-col">
-							<span className="text-sm font-semibold">{activeGroup?.name}</span>
+							<span className="text-sm font-semibold">{activeGroup?.isGroup ? activeGroup.name : activeGroup?.participants?.[0].name}</span>
 
 							{activeGroup?.isGroup ? (
 								<span className="text-xs text-gray-500 cursor-pointer hover:text-gray-600 flex items-center gap-1"
@@ -1022,6 +1022,7 @@ const Page: React.FC = () => {
 				onClose={() => setIsEndSidebarOpen(false)}
 				activeGroup={activeGroup}
 				setIsCreateConversationOpen={setIsCreateConversationOpen}
+				userProfile={userProfile}
 			// onEditGroup={handleEditGroupClick}
 			// onAddMemberClick={() => {
 			// 	console.log("Thêm thành viên vào nhóm");

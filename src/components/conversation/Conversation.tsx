@@ -66,7 +66,7 @@ const Conversation: React.FC<ConversationProps> = ({
 			{/* Text content */}
 			<div className="flex-1">
 				<div className={cn('font-semibold', active ? 'text-white' : 'text-gray-900')}>
-					{name.toUpperCase()}
+					{name} 
 				</div>
 				<div className={cn('text-sm', active ? 'text-white/80' : 'text-gray-500')}>
 					{

@@ -37,7 +37,7 @@ export const ENDPOINTS = {
     LIST: `${BASE_ENDPOINT}/group`,
     DETAIL: (id: string) => `${BASE_ENDPOINT}/group/${id}`,
     CREATE: `${BASE_ENDPOINT}/group`,
-    UPDATE: (id: string) => `${BASE_ENDPOINT}/group/${id}`,
+    RENAME: (id: string) => `${BASE_ENDPOINT}/group/${id}/rename`,
     DELETE: (id: string) => `${BASE_ENDPOINT}/group/${id}`,
     MEMBERS: (id: string) => `${BASE_ENDPOINT}/group/${id}/members`,
     ADD_MEMBER: (id: string) => `${BASE_ENDPOINT}/group/${id}/members`,

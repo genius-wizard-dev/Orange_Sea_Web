@@ -40,7 +40,7 @@ export const getReceived = createAsyncThunk(
   "friend/getReceived",
   async (_, { rejectWithValue }) => {
     try {
-      const result = await apiServicoe.get<FriendPending[]>(
+      const result = await apiService.get<FriendPending[]>(
         ENDPOINTS.FRIEND.REQUESTS_RECEIVED
       );
       return result;
