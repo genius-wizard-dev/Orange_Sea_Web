@@ -21,6 +21,7 @@ import {
   Phone,
   Upload,
   User,
+  VenusAndMars,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -64,6 +65,7 @@ const ProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
     name?: string;
     phone?: string;
     birthday?: string;
+    gender?: string;
   }>({});
 
   useEffect(() => {
@@ -300,6 +302,14 @@ const ProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
                       {userProfile.phone || "Chưa cập nhật"}
                     </span>
                   </div>
+                  {/* Gender */}
+
+                  <div className="flex items-center space-x-3">
+                    <VenusAndMars className="h-5 w-5 text-gray-500" />
+                    <span className="text-sm">
+                      {userProfile.gender ? (userProfile.gender === "F" ? "Nữ" : "Nam") : "Chưa cập nhật"}
+                    </span>
+                  </div>
                   <div className="flex items-center space-x-3">
                     <Calendar className="h-5 w-5 text-gray-500" />
                     <span className="text-sm">
@@ -391,6 +401,24 @@ const ProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
                     {errors.phone && (
                       <p className="text-sm text-red-500">{errors.phone}</p>
                     )}
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Giới tính</label>
+                    
+                    <select
+                      value={formData?.gender || ""}
+                      onChange={(e) => handleChange("gender", e.target.value)}
+                      className={`w-full rounded-md border ${
+                        errors.gender ? "border-red-500" : "border-input"
+                      } bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`}
+                    >
+                      <option value="M">Nam</option>
+                      <option value="F">Nữ</option>
+                    </select>
+                    {errors.gender && (
+                      <p className="text-sm text-red-500">{errors.gender}</p>
+                    )}
+
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Ngày sinh</label>

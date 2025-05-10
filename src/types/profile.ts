@@ -22,6 +22,9 @@ export const ProfileSchema = z.object({
       }
     )
     .default(""),
+  gender: z.enum(["F", "M"])
+    .describe("Gender (F for female, M for male)")
+    .default("F"),
   birthday: z.string().nullable().optional()
   .refine(
     (date) => {

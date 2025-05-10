@@ -23,7 +23,8 @@ const groupSlice = createSlice({
 		},
 
 		addGroup: (state, action: PayloadAction<Group>) => {
-			state.groups.push(action.payload);
+			// add to the beginning of the array
+			state.groups.unshift(action.payload);
 		},
 
 		removeGroup: (state, action: PayloadAction<string>) => {
@@ -40,6 +41,16 @@ const groupSlice = createSlice({
 			const group = state.groups.find(g => g.id === action.payload.groupId);
 			if (group) {
 				group.unreadCount = action.payload.count;
+
+				// sort groups by unread count
+				state.groups.sort((a, b) => {
+					const aCount = a.unreadCount || 0;
+					const bCount = b.unreadCount || 0;
+					if (aCount === bCount) {
+						return 0;
+					}
+					return aCount > bCount ? -1 : 1;
+				});
 			}
 		},
 		setUnreadCountsToGroups: (
@@ -51,6 +62,15 @@ const groupSlice = createSlice({
 				if (count !== undefined) {
 					group.unreadCount = count;
 				}
+				// sort groups by unread count
+				state.groups.sort((a, b) => {
+					const aCount = a.unreadCount || 0;
+					const bCount = b.unreadCount || 0;
+					if (aCount === bCount) {
+						return 0;
+					}
+					return aCount > bCount ? -1 : 1;
+				});
 			}
 		},
 		updateLastMessage: (

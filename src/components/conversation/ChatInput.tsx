@@ -14,6 +14,8 @@ type ChatInputProps = {
 	value: string;
 	onChange: (val: string) => void;
 	onSend: (text: string, fileImage: any) => void;
+	// isSending?: boolean;
+	// setIsSending?: (val: boolean) => void;
 	onAttach?: () => void;
 };
 
@@ -29,6 +31,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 	value,
 	onChange,
 	onSend,
+	isSending,
 	onAttach,
 }) => {
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -122,6 +125,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 					ref={textareaRef}
 					value={value}
 					onChange={(e) => onChange(e.target.value)}
+					// enter to send
+					onKeyDown={(e) => {
+						if (e.key === "Enter" && !e.shiftKey) {
+							e.preventDefault();
+							onSend(value, imageFile);
+							setPreviewImage(null);
+							setImageFile(null);
+						}
+					}}
 					placeholder="Type something..."
 					className={cn(
 						"transition-all duration-200 ease-in-out",
