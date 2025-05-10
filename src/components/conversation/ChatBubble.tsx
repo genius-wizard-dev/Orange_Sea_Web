@@ -241,7 +241,13 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 							<DropdownMenuItem onClick={onForward}>
 								Chuyển tiếp
 							</DropdownMenuItem>
-							<DropdownMenuItem onClick={onDelete}>
+							<DropdownMenuItem
+								onClick={() => {
+									if (window.confirm("Bạn có chắc chắn muốn xóa tin nhắn này không?")) {
+										onDelete?.();
+									}
+								}}
+							>
 								<span className="text-red-500">Xoá</span>
 							</DropdownMenuItem>
 						</DropdownMenuContent>
