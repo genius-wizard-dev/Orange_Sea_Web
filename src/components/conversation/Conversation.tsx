@@ -2,16 +2,18 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Group } from '@/types/group';
+import { formatMessageTime } from './ChatBubble';
 
 interface ConversationProps {
 	id: string;
 	name: string;
 	avatarUrl: string | undefined;
-	message: string;
+	message: Group['lastMessage'];
 	time: string;
 	unreadCount?: number;
 	activeId?: string | null;
-	online?: boolean;
+	online?: string;
 	onClick?: () => void;
 }
 
@@ -28,6 +30,10 @@ const Conversation: React.FC<ConversationProps> = ({
 }) => {
 
 	const active = activeId === 0 ? false : activeId === id ? true : false;
+
+	if(name === null || name === undefined) {
+		name = 'Unknown';
+	}
 
 	return (
 		<div
@@ -48,9 +54,13 @@ const Conversation: React.FC<ConversationProps> = ({
 							.join("")}
 					</AvatarFallback>
 				</Avatar>
-				{online && (
-					<span className="absolute top-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
-				)}
+				{online === "ACTIVE" ? (
+					<span className="absolute right-0 bottom-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+				) : online === "ONLINE" ? (
+					<span className="absolute right-0 bottom-0 w-3 h-3 bg-yellow-500 border-2 border-white rounded-full"></span>
+				) : online === "OFFLINE" ? (
+					<span className="absolute right-0 bottom-0 w-3 h-3 bg-gray-500 border-2 border-white rounded-full"></span>
+				) : null} 
 			</div>
 
 			{/* Text content */}
@@ -59,14 +69,26 @@ const Conversation: React.FC<ConversationProps> = ({
 					{name.toUpperCase()}
 				</div>
 				<div className={cn('text-sm', active ? 'text-white/80' : 'text-gray-500')}>
-					{message}
+					{
+						message?.isRecalled ? (
+							<span className="italic">Tin nhắn đã thu hồi</span>
+						) : message?.content ? (
+							(message?.content ?? '').length > 30 ? (message?.content ?? '').slice(0, 30) + '...' : message?.content ?? ''
+						) : message?.fileUrl ? (
+							<a href={message.fileUrl} target="_blank" rel="noopener noreferrer">
+								Tệp đính kèm
+							</a>
+						) : (
+							<span className="italic">Chưa có tin nhắn nào</span>
+						)
+					}
 				</div>
 			</div>
 
 			{/* Time & Unread */}
 			<div className="flex flex-col items-end gap-1">
-				<span className={cn('text-sm', active ? 'text-white' : 'text-gray-500')}>
-					{time}
+				<span className={cn('text-[13px]', active ? 'text-white' : 'text-gray-500')}>
+					{time ? formatMessageTime(time) : ""}
 				</span>
 				{unreadCount > 0 && (
 					<span

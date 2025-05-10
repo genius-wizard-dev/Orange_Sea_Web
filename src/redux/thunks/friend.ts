@@ -40,7 +40,7 @@ export const getReceived = createAsyncThunk(
   "friend/getReceived",
   async (_, { rejectWithValue }) => {
     try {
-      const result = await apiService.get<FriendPending[]>(
+      const result = await apiServicoe.get<FriendPending[]>(
         ENDPOINTS.FRIEND.REQUESTS_RECEIVED
       );
       return result;
@@ -49,6 +49,71 @@ export const getReceived = createAsyncThunk(
         return rejectWithValue(error.errors);
       }
       return rejectWithValue((error as Error).message);
+    }
+  }
+);
+
+export const sendFriendRequest = createAsyncThunk<
+  void,
+  string,
+  { rejectValue: string | z.ZodIssue[] }
+>(
+  "friend/sendRequest",
+  async (receiverId, { rejectWithValue }) => {
+    try {
+      await apiService.post(ENDPOINTS.FRIEND.SEND_REQUEST, { receiverId });
+    } catch (err: any) {
+      if (err instanceof z.ZodError) return rejectWithValue(err.errors);
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
+export const acceptFriendRequest = createAsyncThunk<
+  void,
+  string,
+  { rejectValue: string }
+>(
+  "friend/acceptRequest",
+  async (requestId, { rejectWithValue }) => {
+    try {
+      await apiService.put(ENDPOINTS.FRIEND.HANDLE_REQUEST(requestId), {
+        action: "ACCEPT",
+      });
+    } catch (err: any) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
+export const rejectFriendRequest = createAsyncThunk<
+  void,
+  string,
+  { rejectValue: string }
+>(
+  "friend/rejectRequest",
+  async (requestId, { rejectWithValue }) => {
+    try {
+      await apiService.put(ENDPOINTS.FRIEND.HANDLE_REQUEST(requestId), {
+        action: "REJECT",
+      });
+    } catch (err: any) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
+export const cancelFriendRequest = createAsyncThunk<
+  void,
+  string,
+  { rejectValue: string }
+>(
+  "friend/cancelRequest",
+  async (requestId, { rejectWithValue }) => {
+    try {
+      await apiService.put(ENDPOINTS.FRIEND.REMOVE_FRIEND(requestId));
+    } catch (err: any) {
+      return rejectWithValue(err.message);
     }
   }
 );

@@ -5,6 +5,7 @@ interface ChatState {
 	messagesByGroup: Record<string, Message[]>; // groupId -> messages
 	unreadCount: Record<string, number>; // groupId -> unreadCount
 	activeUsersByGroup: Record<string, string[]>; // groupId -> profileIds
+	onlineUsers: string[]; // 
 	cursorsByGroup: Record<string, string | null>; // groupId -> cursor for pagination
 	hasMoreByGroup: Record<string, boolean>; // groupId -> whether there are more messages to load
 }
@@ -13,6 +14,7 @@ const initialState: ChatState = {
 	messagesByGroup: {},
 	unreadCount: {},
 	activeUsersByGroup: {},
+	onlineUsers: [],
 	cursorsByGroup: {},
 	hasMoreByGroup: {},
 };
@@ -41,6 +43,21 @@ const chatSlice = createSlice({
 			}
 
 			state.messagesByGroup[groupId].push(message);
+		},
+
+		recallMessage: (
+			state,
+			action: PayloadAction<{ groupId: string; messageId: string; recalledAt: string }>
+		) => {
+			const messages = state.messagesByGroup[action.payload.groupId];
+			if (!messages) return;
+
+			const msg = messages.find((m) => m.id === action.payload.messageId);
+			if (msg) {
+				msg.isRecalled = true;
+				msg.recalledAt = action.payload.recalledAt;
+				msg.updatedAt = action.payload.recalledAt;
+			}
 		},
 
 		setUnreadCount: (
@@ -90,18 +107,36 @@ const chatSlice = createSlice({
 				groupId: string;
 				profileId: string;
 				isActive: boolean;
+				isOnline: boolean;
 			}>
 		) => {
-			const { groupId, profileId, isActive } = action.payload;
+			const { groupId, profileId, isActive, isOnline } = action.payload;
 			const list = state.activeUsersByGroup[groupId] || [];
 
-			if (isActive && !list.includes(profileId)) {
-				list.push(profileId);
-			} else if (!isActive) {
-				state.activeUsersByGroup[groupId] = list.filter((id) => id !== profileId);
+			if (isActive) {
+				if (!list.includes(profileId)) {
+					list.push(profileId);
+				}
 			} else {
-				state.activeUsersByGroup[groupId] = list;
+				const index = list.indexOf(profileId);
+				if (index !== -1) {
+					list.splice(index, 1);
+				}
 			}
+			state.activeUsersByGroup[groupId] = list;
+
+			const onlineList = state.onlineUsers || [];
+			if(isOnline) {
+				if(!onlineList.includes(profileId)) {
+					onlineList.push(profileId);
+				}
+			} else {
+				const index = onlineList.indexOf(profileId);
+				if (index !== -1) {
+					list.splice(index, 1);
+				}
+			}
+					
 		},
 
 		loadOlderMessages: (
@@ -134,27 +169,13 @@ const chatSlice = createSlice({
 
 			state.cursorsByGroup[groupId] = nextCursor;
 			state.hasMoreByGroup[groupId] = hasMore;
-		},
-
-		updateMessage: (
-			state,
-			action: PayloadAction<{ groupId: string; messageId: string; content: string; editedAt: string }>
-		) => {
-			const { groupId, messageId, content, editedAt } = action.payload;
-			const groupMessages = state.messagesByGroup[groupId];
-			if (groupMessages) {
-			  const message = groupMessages.find((msg) => msg.id === messageId);
-			  if (message) {
-				message.content = content;
-				message.editedAt = editedAt;
-			  }
-			}
 		}
 	},
 });
 
 export const {
 	addMessage,
+	recallMessage,
 	setUnreadCount,
 	updateUnreadCount,
 	markMessagesAsRead,
@@ -162,7 +183,6 @@ export const {
 	setUserOnlineStatus,
 	loadOlderMessages,
 	loadInitialMessages,
-	updateMessage,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;
