@@ -31,7 +31,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 	value,
 	onChange,
 	onSend,
-	isSending,
+	// isSending,
 	onAttach,
 }) => {
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
