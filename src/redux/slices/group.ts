@@ -117,6 +117,13 @@ const groupSlice = createSlice({
 				}
 			}
 		},
+		clearLastMessage: (state, action: PayloadAction<{groupId: string}>) => {
+			const group = state.groups.find((g) => g.id === action.payload.groupId);
+			console.log("clearLastMessage", action.payload.groupId);
+			if (group && group.lastMessage) {
+				group.lastMessage.content = "Tin nhắn đã được xóa";	 
+			}
+		},
 	},
 	extraReducers: (builder) => {
 		builder
@@ -147,6 +154,7 @@ export const {
 	updateGroupName,
 	addMember,
 	removeMember,
+	clearLastMessage
 } = groupSlice.actions;
 
 export default groupSlice.reducer;
