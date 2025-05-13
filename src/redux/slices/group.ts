@@ -84,7 +84,7 @@ const groupSlice = createSlice({
 			const group = state.groups.find((g) => g.id === action.payload.groupId);
 			if (!group) return;
 
-			if(action.payload.isRecalled) {
+			if (action.payload.isRecalled) {
 				if (group.lastMessage) {
 					group.lastMessage.isRecalled = action.payload.isRecalled;
 				}
@@ -124,9 +124,7 @@ const groupSlice = createSlice({
 		addMember: (state, action: PayloadAction<{ groupId: string; member: any }>) => {
 			const group = state.groups.find((g) => g.id === action.payload.groupId);
 			if (group) {
-				if (group.participants) {
-					group.participants.push(action.payload.member);
-				}
+				(group.participants ??= []).push(action.payload.member);
 			}
 		},
 		removeMember: (state, action: PayloadAction<{ groupId: string; memberId: string }>) => {
@@ -137,11 +135,11 @@ const groupSlice = createSlice({
 				}
 			}
 		},
-		clearLastMessage: (state, action: PayloadAction<{groupId: string}>) => {
+		clearLastMessage: (state, action: PayloadAction<{ groupId: string }>) => {
 			const group = state.groups.find((g) => g.id === action.payload.groupId);
 			console.log("clearLastMessage", action.payload.groupId);
 			if (group && group.lastMessage) {
-				group.lastMessage.content = "Tin nhắn đã được xóa";	 
+				group.lastMessage.content = "Tin nhắn đã được xóa";
 			}
 		},
 	},

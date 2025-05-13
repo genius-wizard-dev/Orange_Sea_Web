@@ -6,12 +6,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useMemo } from "react";
 import { Friend } from "@/types/friend";
 import { Search } from "lucide-react";
+import { Group } from "@/types/group";
 
 type InviteMemberConversationDialogProps = {
     open: boolean;
     onClose: () => void;
     friends: Friend[];
     onAddMembers: (selectedIds: string[]) => void;
+    activeGroup: Group;
 };
 
 export const InviteMemberConversationDialog: React.FC<InviteMemberConversationDialogProps> = ({
@@ -19,6 +21,7 @@ export const InviteMemberConversationDialog: React.FC<InviteMemberConversationDi
     onClose,
     friends,
     onAddMembers,
+    activeGroup,
 }) => {
     const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
     const [searchTerm, setSearchTerm] = useState<string>("");
@@ -31,19 +34,26 @@ export const InviteMemberConversationDialog: React.FC<InviteMemberConversationDi
 
     const handleAddMembers = () => {
         if (selectedFriendIds.length > 0) {
-            onAddMembers(selectedFriendIds);
-            setSelectedFriendIds([]);
-            setSearchTerm("");
-            onClose();
+            onAddMembers(selectedFriendIds); // Gọi hàm từ `EndSidebar`
+            setSelectedFriendIds([]); // Reset danh sách bạn bè đã chọn
+            setSearchTerm(""); // Reset từ khóa tìm kiếm
+            onClose(); // Đóng dialog
         }
     };
 
     const filteredFriends = useMemo(() => {
-        if (!searchTerm.trim()) return friends;
-        return friends.filter((friend) =>
-            friend.name.toLowerCase().includes(searchTerm.toLowerCase())
+        if (!activeGroup || !activeGroup.participants) return friends; // Nếu không có participants, trả về toàn bộ bạn bè
+        if (!searchTerm.trim()) {
+            return friends.filter(
+                (friend) => !(activeGroup.participants ?? []).some((member) => member.userId === friend.profileId)
+            );
+        }
+        return friends.filter(
+            (friend) =>
+                friend.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+                !(activeGroup.participants ?? []).some((member) => member.userId === friend.profileId)
         );
-    }, [friends, searchTerm]);
+    }, [friends, searchTerm, activeGroup]);
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
