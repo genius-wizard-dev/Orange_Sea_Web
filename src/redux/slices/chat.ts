@@ -47,16 +47,16 @@ const chatSlice = createSlice({
 
 		recallMessage: (
 			state,
-			action: PayloadAction<{ groupId: string; messageId: string; recalledAt: string }>
+			action: PayloadAction<{ messageId: string; }>
 		) => {
-			const messages = state.messagesByGroup[action.payload.groupId];
-			if (!messages) return;
-
-			const msg = messages.find((m) => m.id === action.payload.messageId);
-			if (msg) {
-				msg.isRecalled = true;
-				msg.recalledAt = action.payload.recalledAt;
-				msg.updatedAt = action.payload.recalledAt;
+			const { messageId } = action.payload;
+			for (const groupId in state.messagesByGroup) {
+				const messages = state.messagesByGroup[groupId];
+				const index = messages.findIndex((msg) => msg.id === messageId);
+				if (index !== -1) {
+					messages[index].isRecalled = true;
+					break;
+				}
 			}
 		},
 

@@ -18,7 +18,6 @@ import AddFriendDialog from "@/components/user/AddFriendDialog";
 import { Socket } from "socket.io-client";
 import apiService from "@/service/api.service";
 import { ENDPOINTS } from "@/service/api.endpoint";
-import { mapGroupListToGroups } from "@/utils/mapper/mapGroup";
 import { clearLastMessage, setActiveGroup, setGroups, setUnreadCountsToGroups, updateLastMessage } from "@/redux/slices/group";
 import { addMessage, loadInitialMessages, loadOlderMessages, markMessagesAsRead, recallMessage, removeMessage, setActiveUsers, setUnreadCount, setUserOnlineStatus } from "@/redux/slices/chat";
 import { Button } from "@/components/ui/button";
@@ -34,9 +33,9 @@ import { ForwardMessageDialog } from "@/components/conversation/ForwardMessageDi
 import { Group } from "@/types/group";
 import { toast } from "sonner";
 import { getDeviceId } from "@/utils/fingerprint";
-import { log } from "console";
 import { fetchGroupList } from "@/redux/thunks/group";
 import { get } from "http";
+import { emit } from "process";
 
 
 
@@ -88,7 +87,7 @@ const Page: React.FC = () => {
 		if (group.isGroup) {
 			return group.name || "";
 		} else {
-			const participant = group.participants?.find(p => p.id !== userProfile?.id);
+			const participant = group.participants?.find(p => p.userId !== userProfile?.id);
 			return participant ? participant.name : "";
 		}
 	}
@@ -215,27 +214,19 @@ const Page: React.FC = () => {
 		// 	}
 		// });
 
-		socket.on("messageRecalled", (data) => {
-			console.log("Dữ liệu từ socket (messageRecalled):", data);
-			const { messageId, groupId, recalledMessage, wasLastMessage } = data;
+		socket.on("messageRecall", (data) => {
+			console.log("Dữ liệu từ socket:", data);
 			// console.log("📩 Tin nhắn đã được thu hồi:", data);
-			console.log("Thu hồi: ", recalledMessage)
-
-			dispatch(markMessagesAsRead({ groupId, messageIds: [messageId], profileId: userProfile.id }));
 
 			dispatch(recallMessage({
-				groupId: groupId,
-				messageId: messageId,
-				recalledAt: recalledMessage.createdAt,
+				messageId: data.messageId,
 			}));
 
 			// Update last message in group
-			if (wasLastMessage) {
-				console.log("Cập nhật last message");
-				dispatch(updateLastMessage({
-					groupId: groupId,
-					message: null,
-					isRecalled: true,
+			const checkGroupLastMessage = groups.find(g => g.lastMessage?.id === data.messageId);
+			if (checkGroupLastMessage) {
+				dispatch(clearLastMessage({
+					groupId: checkGroupLastMessage.id,
 				}));
 			}
 
@@ -937,7 +928,17 @@ const Page: React.FC = () => {
 
 										try {
 											const response: any = await apiService.put(ENDPOINTS.CHAT.RECALL(msg.id), { messageId: msg.id });
-											console.log("Tin nhắn đã được thu hồi:", response);
+											if (response.statusCode === 200) {
+												console.log("Tin nhắn đã được thu hồi:", response);
+												dispatch(recallMessage({
+													messageId: msg.id,
+												}));
+												dispatch(clearLastMessage({ groupId: activeGroupId as string }));
+												toast.success("Đã thu hồi tin nhắn");
+												socket.emit('recallMessage', {
+													messageId: msg.id,
+												});
+											}
 										} catch (error: any) {
 											console.error("Lỗi khi thu hồi tin nhắn:", error);
 											alert(error.response?.data?.message || "Đã xảy ra lỗi khi thu hồi tin nhắn.");

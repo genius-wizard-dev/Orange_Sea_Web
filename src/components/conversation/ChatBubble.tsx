@@ -192,7 +192,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 		<div className={cn("flex items-end gap-2 mb-3 group", isOwn ? "justify-end" : "justify-start")}>
 			{!isOwn && (
 				<Avatar className="w-8 h-8">
-					<AvatarImage src={data.sender.avatar} />
+					{/* <AvatarImage src={data.sender.avatar} />
 					<AvatarFallback>
 						{data.sender.name
 							?.split(" ")
@@ -200,6 +200,10 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 							.join("")
 							.slice(0, 2)
 							.toUpperCase()}
+					</AvatarFallback> */}
+					<AvatarImage src={""} />
+					<AvatarFallback>
+						NN
 					</AvatarFallback>
 				</Avatar>
 			)}
