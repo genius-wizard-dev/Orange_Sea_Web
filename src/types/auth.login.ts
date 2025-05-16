@@ -13,23 +13,23 @@ export const LoginRequestSchema = z.object({
 
 // Login Response Schema
 export const LoginResponseSchema = z.object({
-  status: z.enum(["success", "fail"]),
+  statusCode: z.number(),
   message: z.string(),
   data: z
     .object({
       access_token: z.string(),
       refresh_token: z.string(),
-      account: z.object({
-        id: z.string(),
-        email: z.string(),
-        username: z.string(),
-        role: z.string(),
-      }),
-      profile: z.object({
-        id: z.string(),
-        name: z.string(),
-        avatar: z.string(),
-      }),
+      // account: z.object({
+      //   id: z.string(),
+      //   email: z.string(),
+      //   username: z.string(),
+      //   role: z.string(),
+      // }),
+      // profile: z.object({
+      //   id: z.string(),
+      //   name: z.string(),
+      //   avatar: z.string(),
+      // }),
     })
     .optional(),
 });

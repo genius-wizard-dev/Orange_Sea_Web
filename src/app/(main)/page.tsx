@@ -33,12 +33,17 @@ import { CreateConversationDialog } from "@/components/conversation/CreateConver
 import { ForwardMessageDialog } from "@/components/conversation/ForwardMessageDialog";
 import { Group } from "@/types/group";
 import { toast } from "sonner";
+import { getDeviceId } from "@/utils/fingerprint";
+import { log } from "console";
+import { fetchGroupList } from "@/redux/thunks/group";
+import { get } from "http";
 
 
 
 const Page: React.FC = () => {
 
 	const dispatch = useDispatch();
+
 	const { profile: userProfile } = useSelector((state: RootState) => state.profile);
 	const { friend: listFriend } = useSelector((state: RootState) => state.friend);
 
@@ -47,7 +52,7 @@ const Page: React.FC = () => {
 
 	// Loading
 	const [isMessagesLoading, setIsMessagesLoading] = useState<boolean>(true);
-	const [isConversationLoading, setIsConversationLoading] = useState<boolean>(true);
+	// const [isConversationLoading, setIsConversationLoading] = useState<boolean>(true);
 	const [isGettingOlderMessages, setIsGettingOlderMessages] = useState<boolean>(false);
 
 	// Open/close state
@@ -63,10 +68,8 @@ const Page: React.FC = () => {
 	const unreadCount = useSelector((state: RootState) => state.chat.unreadCount);
 	const onlineUsers = useSelector((state: RootState) => state.chat.onlineUsers);
 	const activeUsers = useSelector((state: RootState) => state.chat.activeUsersByGroup);
-
+	const isConversationLoading = useSelector((state: RootState) => state.group.state === "loading");
 	const activeGroup = groups.find(g => g.id === activeGroupId);
-
-	const [groupName, setGroupName] = useState<string>("");
 
 	// Online status: ACTIVE, ONLINE, OFFLINE
 	const useOnlineStatus = (userId: string): "OFFLINE" | "ONLINE" | "ACTIVE" => {
@@ -78,9 +81,34 @@ const Page: React.FC = () => {
 		return isOnline ? (isActive ? "ACTIVE" : "ONLINE") : "OFFLINE";
 	};
 
+	const getGroupName = (group?: Group): string => {
+		if (!group) {
+			return "";
+		}
+		if (group.isGroup) {
+			return group.name || "";
+		} else {
+			const participant = group.participants?.find(p => p.id !== userProfile?.id);
+			return participant ? participant.name : "";
+		}
+	}
+
+	const getGroupAvatar = (group?: Group): string => {
+		if (!group) {
+			return "";
+		}
+		if (group.isGroup) {
+			return group.avatarUrl ?? "";
+		} else {
+			const participant = group.participants?.find(p => p.id !== userProfile?.id);
+			return participant?.avatarUrl ?? "";
+		}
+	}
+
+	const EMPTY_ARRAY: any[] = [];
 
 	const messages = useSelector((state: RootState) =>
-		activeGroupId ? state.chat.messagesByGroup[activeGroupId] || [] : []
+		activeGroupId ? state.chat.messagesByGroup[activeGroupId] ?? EMPTY_ARRAY : EMPTY_ARRAY
 	);
 	const hasMore = useSelector((state: RootState) =>
 		activeGroupId ? state.chat.hasMoreByGroup[activeGroupId] : false
@@ -107,139 +135,84 @@ const Page: React.FC = () => {
 	};
 
 
+
 	const socket: Socket = getSocket();
 
 	// Register socket connection and listen to events
 	useEffect(() => {
 
+		
 		if (!userProfile?.id) return;
 
-		socket.on("connect", () => {
-
+		socket.on("connect", async () => {
+			const deviceId = await getDeviceId();
 			// Gửi profileId lên server
-			socket.emit("register", { profileId: userProfile.id }, async (res: any) => {
-				console.log("🚀 Register response:", res);
+			socket.emit("register", { profileId: userProfile.id, deviceId: deviceId }, async (res: any) => {
 
-				if (res.status === "success") {
-					try {
-						const response: any = await apiService.get(ENDPOINTS.GROUP.LIST);
-						const groupList = response;
+				// console.log("🚀 Register response:", res);
 
-						if (!Array.isArray(groupList)) {
-							console.error("❌ Dữ liệu nhóm không hợp lệ:", groupList);
-							return;
-						}
-
-						const mappedGroups = mapGroupListToGroups(groupList, userProfile.id);
-						await Promise.all([
-							dispatch(setGroups(mappedGroups)),
-							dispatch(setActiveGroup(mappedGroups[0]?.id || "")),
-							setIsConversationLoading(false)
-						]);
-
-						// Map messages về chatSlice (tuỳ chọn)
-					} catch (error) {
-						console.error("❌ Lỗi khi lấy danh sách nhóm:", error);
-					}
+				if(res.success === false) {
+					console.log("🚀 Kết nối thất bại", res);
+				} else {
+					console.log("🚀 Đã kết nối với server:", res);
 				}
+
 			});
 
 		});
 
-		// Lắng nghe sự kiện server gửi về
-		socket.on("initialUnreadCounts", (data) => {
+		// // Lắng nghe sự kiện server gửi về
+		// socket.on("unReadMessages", (data) => {
 
-			console.log("📩 Số lượng tin nhắn chưa đọc:", data);
+		// 	console.log("📩 Số lượng tin nhắn chưa đọc:", data);
 
-			const unreadMap = data.reduce((acc: Record<string, number>, item: any) => {
-				acc[item.groupId] = item.unreadCount;
-				return acc;
-			}, {});
+		// 	const unreadMap = data.reduce((acc: Record<string, number>, item: any) => {
+		// 		acc[item.groupId] = item.unreadCount;
+		// 		return acc;
+		// 	}, {});
 
-			dispatch(setUnreadCount(unreadMap)); // chatSlice
-			dispatch(setUnreadCountsToGroups(unreadMap)); // groupSlice
-		});
+		// 	dispatch(setUnreadCount(unreadMap)); // chatSlice
+		// 	dispatch(setUnreadCountsToGroups(unreadMap)); // groupSlice
+		// });
+		// //   });
 
-		// this.server.to(socketId).emit('notifyMessage', {
-		// 	type: 'NEW_MESSAGE',
-		// 	groupId,
-		// 	message: messageData,
-		// 	unreadCounts,
-		//   });
-
-		socket.on("notifyMessage", (data) => {
-			const { type, groupId, message, unreadCounts } = data;
+		// Success receive message socket
+		socket.on("receiveMessage", (data) => {
+			const message = data;
 			console.log("📩 Thông báo tin nhắn:", data);
 
-			if (type === "NEW_MESSAGE") {
-				dispatch(addMessage({ groupId, message: mapServerMessageToClient(message) }));
+				dispatch(addMessage({ groupId: message.groupId, message: mapServerMessageToClient(message) }));
 
-				const unreadMap = unreadCounts.reduce((acc: Record<string, number>, item: any) => {
-					acc[item.groupId] = item.unreadCount;
-					return acc;
-				}, {});
-
-				dispatch(setUnreadCount(unreadMap)); // chatSlice
-				dispatch(setUnreadCountsToGroups(unreadMap)); // groupSlice
 				// update last message in group
 				dispatch(updateLastMessage({
-					groupId: groupId,
+					groupId: message.groupId,
 					message: message
 				}));
-			}
 		});
 
-		// this.server.to(socketId).emit('notifyMessageUpdate', {
-		// 	type: 'MESSAGE_EDITED | MESSAGE_RECALLED',
-		// 	groupId,
-		// 	messageId,
-		// 	editedMessage,
-		// 	wasLastMessage,
-		//   });
+		// socket.on("notifyMessageUpdate", (data) => {
+		// 	const { type, groupId, messageId, editedMessage, wasLastMessage } = data;
+		// 	console.log("📩 Thông báo cập nhật tin nhắn:", data);
 
-		socket.on("notifyMessageUpdate", (data) => {
-			const { type, groupId, messageId, editedMessage, wasLastMessage } = data;
-			console.log("📩 Thông báo cập nhật tin nhắn:", data);
-
-			if (type === "MESSAGE_EDITED") {
-				dispatch(addMessage({ groupId, message: mapServerMessageToClient(editedMessage) }));
-				// update last message in group
-				if (wasLastMessage) {
-					dispatch(updateLastMessage({
-						groupId: groupId,
-						message: editedMessage
-					}));
-				}
-			} else if (type === "MESSAGE_RECALLED") {
-				dispatch(markMessagesAsRead({ groupId, messageIds: [messageId], profileId: userProfile.id }));
-				dispatch(addMessage({ groupId, message: mapServerMessageToClient(editedMessage) }));
-				if (wasLastMessage) {
-					dispatch(updateLastMessage({
-						groupId: groupId,
-						message: editedMessage
-					}));
-				}
-			}
-		});
-
-		socket.on("newMessage", async (message) => {
-			console.log("📩 Tin nhắn mới:", message);
-			const mappedMessage = mapServerMessageToClient(message);
-			dispatch(addMessage({ groupId: message.groupId, message: mappedMessage }));
-			// Update last message in group
-			dispatch(updateLastMessage({
-				groupId: message.groupId,
-				message: message,
-			}));
-
-		});
-
-		// // Broadcast to all users in the group
-		// this.server.to(groupId).emit('messageRecalled', {
-		// 	messageId,
-		// 	groupId,
-		// 	recalledMessage,
-		// 	wasLastMessage,
+		// 	if (type === "MESSAGE_EDITED") {
+		// 		dispatch(addMessage({ groupId, message: mapServerMessageToClient(editedMessage) }));
+		// 		// update last message in group
+		// 		if (wasLastMessage) {
+		// 			dispatch(updateLastMessage({
+		// 				groupId: groupId,
+		// 				message: editedMessage
+		// 			}));
+		// 		}
+		// 	} else if (type === "MESSAGE_RECALLED") {
+		// 		dispatch(markMessagesAsRead({ groupId, messageIds: [messageId], profileId: userProfile.id }));
+		// 		dispatch(addMessage({ groupId, message: mapServerMessageToClient(editedMessage) }));
+		// 		if (wasLastMessage) {
+		// 			dispatch(updateLastMessage({
+		// 				groupId: groupId,
+		// 				message: editedMessage
+		// 			}));
+		// 		}
+		// 	}
 		// });
 
 		socket.on("messageRecalled", (data) => {
@@ -269,14 +242,6 @@ const Page: React.FC = () => {
 		});
 
 
-		// Broadcast to users in the group
-		// this.server.to(groupId).emit('messageEdited', {
-		// 	messageId,
-		// 	groupId,
-		// 	editedMessage,
-		// 	wasLastMessage,
-		// });
-
 		socket.on("messageEdited", (data) => {
 			const { messageId, groupId, editedMessage, wasLastMessage } = data;
 			console.log("📩 Tin nhắn đã được chỉnh sửa:", data);
@@ -303,12 +268,6 @@ const Page: React.FC = () => {
 			dispatch(setUnreadCount(unreadMap)); // chatSlice
 			dispatch(setUnreadCountsToGroups(unreadMap)); // groupSlice
 		});
-
-		// this.server.to(groupId).emit('messagesRead', {
-		// 	profileId,
-		// 	groupId,
-		// 	messageIds: markResult.messageIds,
-		//   });
 
 		socket.on("messagesRead", (data) => {
 			const { profileId, groupId, messageIds } = data;
@@ -368,7 +327,9 @@ const Page: React.FC = () => {
 					profileId: userProfile.id,
 					groupId: activeGroupId,
 				}, async (res: any) => {
-					if (res.status === "success") {
+					console.log("🚀 Socket open response:", res);
+
+					if (res.success === true) {
 
 						console.log("🚀 Conversation opened:", res);
 						const activeUsers = res.activeUsers;
@@ -508,22 +469,15 @@ const Page: React.FC = () => {
 				response = await apiService.post(ENDPOINTS.CHAT.SEND, formData);
 				console.log("🚀 File đã gửi:", response);
 
-				if (response.status === 'success') {
-					const messageData = response.data;
-					console.log("🚀 File đã gửi thành công:", messageData);
+				if (response.statusCode === 200) {
+					const messageId = response.data.messageId;
 
-					socket.emit('send', {
-						messageId: messageData.id,
-						groupId: messageData.groupId,
-						senderId: userProfile.id,
+					console.log("🚀 Tin nhắn đã gửi thành công:", messageId);
+
+					socket.emit('sendMessage', {
+						messageId: messageId,
 					});
 
-					const mappedMessage = mapServerMessageToClient(messageData);
-					dispatch(addMessage({ groupId: messageData.groupId, message: mappedMessage }));
-					dispatch(updateLastMessage({
-						groupId: messageData.groupId,
-						message: messageData
-					}));
 					scrollToBottom();
 				}
 			} else {
@@ -537,24 +491,15 @@ const Page: React.FC = () => {
 				console.log("🚀 Tin nhắn đã gửi:", response);
 				// Xử lý sau khi gửi
 
-				if (response.status === 'success') {
+				if (response.statusCode === 200) {
 
-					const messageData = response.data;
+					const messageId = response.data.messageId;
 
-					console.log("🚀 Tin nhắn đã gửi thành công:", messageData);
+					console.log("🚀 Tin nhắn đã gửi thành công:", messageId);
 
-					socket.emit('send', {
-						messageId: messageData.id,
-						groupId: messageData.groupId,
-						senderId: userProfile.id,
+					socket.emit('sendMessage', {
+						messageId: messageId,
 					});
-
-					const mappedMessage = mapServerMessageToClient(messageData);
-					dispatch(addMessage({ groupId: messageData.groupId, message: mappedMessage }));
-					dispatch(updateLastMessage({
-						groupId: messageData.groupId,
-						message: messageData
-					}));
 
 					scrollToBottom();
 				}
@@ -667,10 +612,19 @@ const Page: React.FC = () => {
 		setIsEndSidebarOpen(false);
 	};
 
+	
+
 	// console.log("List friend:", listFriend);
 	console.log("Online users:", onlineUsers);
 	console.log("Participants:", activeGroup?.participants);
 	console.log("Messages:", messages);
+	console.log("Active group ID:", activeGroupId);
+	console.log("Active group:", activeGroup);
+	console.log("Groups:", groups);
+	console.log("Unread counts:", unreadCount);
+	console.log("User profile:", userProfile);
+	console.log("User online status:", useOnlineStatus(userProfile?.id || ""));
+	console.log("Friend list:", listFriend);
 
 	return (
 		<div className="pt-[60px] flex gap-0 h-screen w-screen overflow-hidden">
@@ -727,7 +681,7 @@ const Page: React.FC = () => {
 													<Conversation
 														key={group.id}
 														id={group.id}
-														name={group.isGroup ? group.name ?? "" : group.participants?.find(p => p.id !== userProfile?.id)?.name ?? ""}
+														name={getGroupName(group)}
 														message={group.lastMessage}
 														time={group.lastMessage?.updatedAt ?? group.lastMessage?.createdAt ?? ""} // Bạn có thể định dạng từ `group.lastMessageAt` nếu có
 														unreadCount={count}
@@ -790,7 +744,7 @@ const Page: React.FC = () => {
 													<Conversation
 														key={group.id}
 														id={group.id}
-														name={group.isGroup ? group.name ?? "" : group.participants?.find(p => p.id !== userProfile?.id)?.name ?? ""}
+														name={getGroupName(group)}
 														message={group.lastMessage}
 														time={group.lastMessage?.updatedAt ?? group.lastMessage?.createdAt ?? ""} // Bạn có thể định dạng từ `group.lastMessageAt` nếu có
 														unreadCount={count}
@@ -832,7 +786,7 @@ const Page: React.FC = () => {
 														<Conversation
 															key={group.id}
 															id={group.id}
-															name={group.isGroup ? group.name ?? "" : group.participants?.find(p => p.id !== userProfile?.id)?.name ?? ""}
+															name={getGroupName(group)}
 															message={group.lastMessage}
 															time={group.lastMessage?.updatedAt ?? group.lastMessage?.createdAt ?? ""} // Bạn có thể định dạng từ `group.lastMessageAt` nếu có
 															unreadCount={count}
@@ -884,7 +838,7 @@ const Page: React.FC = () => {
 						<Avatar className="w-10 h-10 rounded-full overflow-hidden">
 							<AvatarImage src={activeGroup?.isGroup ? activeGroup.avatarUrl : activeGroup?.participants?.[0].avatarUrl} alt="Avatar" />
 							<AvatarFallback>
-								{activeGroup?.name
+								{getGroupName(activeGroup)
 									?.split(" ")
 									.map((word) => word[0])
 									.join("")
@@ -970,7 +924,7 @@ const Page: React.FC = () => {
 							messages.map((msg) => (
 								<ChatBubble
 									key={msg.id}
-									status={msg.readBy?.some(id => id !== userProfile?.id) ? "seen" : "sent"}
+									status={msg.readBy?.some((id: string) => id !== userProfile?.id) ? "seen" : "sent"}
 									isOwn={msg.senderId === userProfile?.id}
 									data={msg}
 									onRecall={async () => {
@@ -1021,7 +975,7 @@ const Page: React.FC = () => {
 				hidden={!isEndSidebarOpen}
 				onClose={() => setIsEndSidebarOpen(false)}
 				activeGroup={activeGroup}
-				setIsCreateConversationOpen={setIsCreateConversationOpen}
+				// setIsCreateConversationOpen={setIsCreateConversationOpen}
 				userProfile={userProfile}
 			// onEditGroup={handleEditGroupClick}
 			// onAddMemberClick={() => {

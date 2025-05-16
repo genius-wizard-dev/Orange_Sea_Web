@@ -32,7 +32,7 @@ interface EndSidebarProps {
     className?: string;
     hidden?: boolean;
     onClose?: () => void;
-    activeGroup: Group;
+    activeGroup: Group | undefined;
     onLeaveGroup?: (groupId: any) => void;
     onRemoveGroup?: (groupId: any) => void;
     userProfile?: Profile | null;

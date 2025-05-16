@@ -11,7 +11,7 @@ interface GroupState {
 const initialState: GroupState = {
 	groups: [],
 	activeGroupId: null,
-	state: "idle",
+	state: "loading",
 };
 
 const groupSlice = createSlice({
@@ -145,8 +145,10 @@ const groupSlice = createSlice({
 	},
 	extraReducers: (builder) => {
 		builder
-			.addCase(fetchGroupList.fulfilled, (state, action: PayloadAction<Group[]>) => {
+			.addCase(fetchGroupList.fulfilled, (state, action) => {
+				console.log("fetchGroupList", action.payload);
 				state.groups = action.payload;
+				state.activeGroupId = action.payload[0]?.id ?? null;
 				state.state = "succeeded";
 			})
 			.addCase(fetchGroupList.pending, (state) => {
@@ -172,7 +174,7 @@ export const {
 	updateGroupName,
 	addMember,
 	removeMember,
-	clearLastMessage
+	clearLastMessage,
 } = groupSlice.actions;
 
 export default groupSlice.reducer;

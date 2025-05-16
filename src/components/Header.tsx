@@ -79,13 +79,14 @@ const TopNavigation: React.FC = () => {
       await apiService.post(ENDPOINTS.AUTH.LOGOUT);
       removeAccessToken();
       removeRefreshToken();
-      router.refresh();
+      router.replace("/");
     } catch (error) {
       console.error("Logout failed:", error);
       // Vẫn xóa token và chuyển hướng ngay cả khi request thất bại
       removeAccessToken();
       removeRefreshToken();
-      router.replace("/");
+      // router.replace("/");
+      window.location.href = "/";
     } finally {
       setIsLoggingOut(false);
     }

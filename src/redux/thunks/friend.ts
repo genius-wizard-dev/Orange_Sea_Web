@@ -8,8 +8,8 @@ export const getFriend = createAsyncThunk(
   "friend/getFriend",
   async (_, { rejectWithValue }) => {
     try {
-      const result = await apiService.get<Friend[]>(ENDPOINTS.FRIEND.BASE);
-      return result;
+      const result: any = await apiService.get<Friend[]>(ENDPOINTS.FRIEND.BASE);
+      return result.data;
     } catch (error) {
       if (error instanceof z.ZodError) {
         return rejectWithValue(error.errors);
@@ -23,10 +23,10 @@ export const getRequested = createAsyncThunk(
   "friend/getRequested",
   async (_, { rejectWithValue }) => {
     try {
-      const result = await apiService.get<FriendPending[]>(
+      const result: any = await apiService.get<FriendPending[]>(
         ENDPOINTS.FRIEND.REQUESTS_SENT
       );
-      return result;
+      return result.data;
     } catch (error) {
       if (error instanceof z.ZodError) {
         return rejectWithValue(error.errors);
@@ -40,10 +40,10 @@ export const getReceived = createAsyncThunk(
   "friend/getReceived",
   async (_, { rejectWithValue }) => {
     try {
-      const result = await apiService.get<FriendPending[]>(
+      const result: any = await apiService.get<FriendPending[]>(
         ENDPOINTS.FRIEND.REQUESTS_RECEIVED
       );
-      return result;
+      return result.data;
     } catch (error) {
       if (error instanceof z.ZodError) {
         return rejectWithValue(error.errors);

@@ -41,8 +41,11 @@ export const CreateConversationDialog: React.FC<CreateConversationDialogProps> =
 	};
 
 	const filteredFriends = useMemo(() => {
-		if (!searchTerm.trim()) return friends;
-		return friends.filter((friend) =>
+		const list = Array.isArray(friends) ? friends : [];
+		if (!searchTerm.trim()) {
+			return list;
+		}
+		return list.filter((friend) =>
 			friend.name.toLowerCase().includes(searchTerm.toLowerCase())
 		);
 	}, [friends, searchTerm]);

@@ -21,8 +21,8 @@ export interface Message {
 	updatedAt: string;
 	forwardedFrom: string | null;
 	forwardedAt: string | null;
-	readBy: string[];
-	sender: Sender;
+	readBy: string[] | null;
+	// sender: Sender;
 }
 
 export interface MessageResponse {

@@ -18,12 +18,12 @@ const checkRegister = async (data: {
 }): Promise<boolean> => {
   try {
     // Send key as data, not just passing the key string directly
-    const checkKey: { status: string } = await apiService.post<{
-      status: string;
+    const checkKey: { statusCode: number } = await apiService.post<{
+      statusCode: number;
     }>(ENDPOINTS.AUTH.IS_REGISTER, { key: data.key, email: data.email });
 
     console.log(checkKey);
-    if (checkKey.status === "success") {
+    if (checkKey.statusCode === 200) {
       return true;
     }
     return false;
