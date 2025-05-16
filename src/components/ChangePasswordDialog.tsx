@@ -88,15 +88,15 @@ const ChangePasswordDialog = ({
       setIsLoading(true);
       if (userProfile?.accountID) {
         const result = await apiService.put<{
-          status: string;
+          statusCode: number;
           message?: string;
         }>(ENDPOINTS.ACCOUNT.PASSWORD(userProfile?.accountID), {
           currentPassword,
           newPassword,
         });
-        if (result.status === "fail") {
+        if (result.statusCode === 400) {
           toast.error(result.message || "Failed to change password");
-        } else if (result.status === "success") {
+        } else if (result.statusCode === 200) {
           toast.success(result.message || "Password changed successfully");
           onOpenChange(false);
           resetForm();

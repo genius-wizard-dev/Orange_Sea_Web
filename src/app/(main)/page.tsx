@@ -18,8 +18,8 @@ import AddFriendDialog from "@/components/user/AddFriendDialog";
 import { Socket } from "socket.io-client";
 import apiService from "@/service/api.service";
 import { ENDPOINTS } from "@/service/api.endpoint";
-import { clearLastMessage, setActiveGroup, setGroups, setUnreadCountsToGroups, updateLastMessage } from "@/redux/slices/group";
-import { addMessage, loadInitialMessages, loadOlderMessages, markMessagesAsRead, recallMessage, removeMessage, setActiveUsers, setUnreadCount, setUserOnlineStatus } from "@/redux/slices/chat";
+import { clearLastMessage, plusUnReadCountToGroup, setActiveGroup, setGroups, setUnreadCountsToGroups, updateLastMessage } from "@/redux/slices/group";
+import { addActiveUser, addMessage, addOnlineUser, loadInitialMessages, loadOlderMessages, markMessagesAsRead, plusUnreadCount, recallMessage, removeActiveUser, removeMessage, removeOnlineUser, setOnlineUsers, setUnreadCount, updateUnreadCount } from "@/redux/slices/chat";
 import { Button } from "@/components/ui/button";
 import { ConversationSkeleton } from "@/components/skeleton/ConversationSkeleton";
 import { mapServerMessageToClient } from "@/utils/mapper/mapChat";
@@ -33,9 +33,6 @@ import { ForwardMessageDialog } from "@/components/conversation/ForwardMessageDi
 import { Group } from "@/types/group";
 import { toast } from "sonner";
 import { getDeviceId } from "@/utils/fingerprint";
-import { fetchGroupList } from "@/redux/thunks/group";
-import { get } from "http";
-import { emit } from "process";
 
 
 
@@ -53,6 +50,7 @@ const Page: React.FC = () => {
 	const [isMessagesLoading, setIsMessagesLoading] = useState<boolean>(true);
 	// const [isConversationLoading, setIsConversationLoading] = useState<boolean>(true);
 	const [isGettingOlderMessages, setIsGettingOlderMessages] = useState<boolean>(false);
+	const [isSending, setIsSending] = useState<boolean>(false);
 
 	// Open/close state
 	const [isSearchFriendOpen, setIsSearchFriendOpen] = useState(false);
@@ -92,15 +90,15 @@ const Page: React.FC = () => {
 		}
 	}
 
-	const getGroupAvatar = (group?: Group): string => {
+	const getGroupAvatar = (group?: Group): string | undefined => {
 		if (!group) {
-			return "";
+			return undefined;
 		}
 		if (group.isGroup) {
-			return group.avatarUrl ?? "";
+			return group.avatarUrl ?? undefined;
 		} else {
-			const participant = group.participants?.find(p => p.id !== userProfile?.id);
-			return participant?.avatarUrl ?? "";
+			const participant = group.participants?.find(p => p.userId !== userProfile?.id);
+			return participant?.avatarUrl ?? undefined;
 		}
 	}
 
@@ -140,7 +138,7 @@ const Page: React.FC = () => {
 	// Register socket connection and listen to events
 	useEffect(() => {
 
-		
+
 		if (!userProfile?.id) return;
 
 		socket.on("connect", async () => {
@@ -150,7 +148,7 @@ const Page: React.FC = () => {
 
 				// console.log("🚀 Register response:", res);
 
-				if(res.success === false) {
+				if (res.success === false) {
 					console.log("🚀 Kết nối thất bại", res);
 				} else {
 					console.log("🚀 Đã kết nối với server:", res);
@@ -160,70 +158,60 @@ const Page: React.FC = () => {
 
 		});
 
-		// // Lắng nghe sự kiện server gửi về
-		// socket.on("unReadMessages", (data) => {
+		// Lắng nghe sự kiện server gửi về
+		socket.on("unReadMessages", (data) => {
 
-		// 	console.log("📩 Số lượng tin nhắn chưa đọc:", data);
+			console.log("📩 Số lượng tin nhắn chưa đọc:", data);
 
-		// 	const unreadMap = data.reduce((acc: Record<string, number>, item: any) => {
-		// 		acc[item.groupId] = item.unreadCount;
-		// 		return acc;
-		// 	}, {});
+			const unreadMap = data.reduce((acc: Record<string, number>, item: any) => {
+				acc[item.groupId] = item.unreadCount;
+				return acc;
+			}, {});
 
-		// 	dispatch(setUnreadCount(unreadMap)); // chatSlice
-		// 	dispatch(setUnreadCountsToGroups(unreadMap)); // groupSlice
-		// });
-		// //   });
+			dispatch(setUnreadCount(unreadMap)); // chatSlice
+			dispatch(setUnreadCountsToGroups(unreadMap)); // groupSlice
+		});
 
 		// Success receive message socket
 		socket.on("receiveMessage", (data) => {
 			const message = data;
-			console.log("📩 Thông báo tin nhắn:", data);
+			console.log("📩 Thông báo tin nhắn trong:", data);
 
-				dispatch(addMessage({ groupId: message.groupId, message: mapServerMessageToClient(message) }));
+			dispatch(addMessage({ groupId: message.groupId, message: mapServerMessageToClient(message) }));
 
-				// update last message in group
-				dispatch(updateLastMessage({
-					groupId: message.groupId,
-					message: message
-				}));
+			// update last message in group
+			dispatch(updateLastMessage({
+				groupId: message.groupId,
+				message: message
+			}));
 		});
 
-		// socket.on("notifyMessageUpdate", (data) => {
-		// 	const { type, groupId, messageId, editedMessage, wasLastMessage } = data;
-		// 	console.log("📩 Thông báo cập nhật tin nhắn:", data);
+		socket.on("notifyMessage", (data) => {
+			const message = data;
+			console.log("📩 Thông báo tin nhắn ngoài:", data)
+			dispatch(addMessage({ groupId: message.groupId, message: mapServerMessageToClient(message) }));
+			// update last message in group
+			dispatch(updateLastMessage({
+				groupId: message.groupId,
+				message: message
+			}));
 
-		// 	if (type === "MESSAGE_EDITED") {
-		// 		dispatch(addMessage({ groupId, message: mapServerMessageToClient(editedMessage) }));
-		// 		// update last message in group
-		// 		if (wasLastMessage) {
-		// 			dispatch(updateLastMessage({
-		// 				groupId: groupId,
-		// 				message: editedMessage
-		// 			}));
-		// 		}
-		// 	} else if (type === "MESSAGE_RECALLED") {
-		// 		dispatch(markMessagesAsRead({ groupId, messageIds: [messageId], profileId: userProfile.id }));
-		// 		dispatch(addMessage({ groupId, message: mapServerMessageToClient(editedMessage) }));
-		// 		if (wasLastMessage) {
-		// 			dispatch(updateLastMessage({
-		// 				groupId: groupId,
-		// 				message: editedMessage
-		// 			}));
-		// 		}
-		// 	}
-		// });
+			dispatch(plusUnReadCountToGroup({ groupId: message.groupId, count: 1 }));
+			dispatch(plusUnreadCount({ groupId: message.groupId, count: 1 }));
+
+		});
 
 		socket.on("messageRecall", (data) => {
-			console.log("Dữ liệu từ socket:", data);
-			// console.log("📩 Tin nhắn đã được thu hồi:", data);
+			console.log("Thu hồi tin nhắn trong:", data);
 
 			dispatch(recallMessage({
 				messageId: data.messageId,
+				groupId: activeGroupId as string,
 			}));
 
 			// Update last message in group
-			const checkGroupLastMessage = groups.find(g => g.lastMessage?.id === data.messageId);
+			const checkGroupLastMessage = groups.find(g => g.id === activeGroupId)?.lastMessage?.id === data.messageId ?
+				groups.find(g => g.id === activeGroupId) : null;
 			if (checkGroupLastMessage) {
 				dispatch(clearLastMessage({
 					groupId: checkGroupLastMessage.id,
@@ -231,6 +219,26 @@ const Page: React.FC = () => {
 			}
 
 		});
+
+		socket.on("notifyMessageRecall", (data) => {
+			console.log("Thu hồi tin nhắn ngoài:", data);
+
+			dispatch(recallMessage({
+				messageId: data.messageId,
+				groupId: data.groupId,
+			}));
+
+			// Update last message in group
+			const checkGroupLastMessage = groups[data.groupId].lastMessage?.id === data.messageId ? groups[data.groupId] : null;
+			if (checkGroupLastMessage) {
+				dispatch(clearLastMessage({
+					groupId: checkGroupLastMessage.id,
+				}));
+			}
+
+		});
+
+
 
 
 		socket.on("messageEdited", (data) => {
@@ -247,19 +255,6 @@ const Page: React.FC = () => {
 			}
 		});
 
-		socket.on("unreadCountUpdated", (counts) => {
-
-			console.log("📩 Số lượng tin nhắn chưa đọc:", counts);
-
-			const unreadMap = counts.reduce((acc: Record<string, number>, item: any) => {
-				acc[item.groupId] = item.unreadCount;
-				return acc;
-			}, {});
-
-			dispatch(setUnreadCount(unreadMap)); // chatSlice
-			dispatch(setUnreadCountsToGroups(unreadMap)); // groupSlice
-		});
-
 		socket.on("messagesRead", (data) => {
 			const { profileId, groupId, messageIds } = data;
 			console.log("📩 Tin nhắn đã được đọc:", data);
@@ -273,25 +268,50 @@ const Page: React.FC = () => {
 					})
 				);
 			}
-
 		});
 
-		socket.on("userStatusUpdate", (data) => {
-			const { profileId, groupId, isOnline, isActive } = data;
+		// client.emit('friendStatus', {
+        //   online: onlineFriends,
+        //   offline: offlineFriends,
+        // });
+		socket.on("friendStatus", (data) => {
+			dispatch(setOnlineUsers({ onlineUsers: data.online }));
+			console.log("🚀 Danh sách bạn bè trực tuyến:", data.online);
+		});
 
-			console.log("📩 Trạng thái người dùng đã được cập nhật:", data);
+		socket.on("friendOnline", (data) => {
+			console.log("🚀 Bạn bè trực tuyến:", data.profileId);
+			dispatch(addOnlineUser(data.profileId));
+		});
 
+		socket.on("friendOffline", (data) => {
+			const { profileId } = data;
+			console.log("🚀 Bạn bè ngoại tuyến:", data);
+			// Cập nhật trạng thái trực tuyến cho bạn bè
+			dispatch(removeOnlineUser(data.profileId));
+			dispatch(removeOnlineUser(profileId));
+		});
 
-			if (profileId && groupId) {
-				dispatch(
-					setUserOnlineStatus({
-						groupId,
-						profileId,
-						isActive: isActive,
-						isOnline: isOnline,
-					})
-				);
+		socket.on("memberOpenGroup", (data) => {
+			const { profileId } = data;
+			console.log("🚀 Thành viên mở nhóm:", data);
+			
+			if(data.profileId !== userProfile?.id) {
+				dispatch(addActiveUser({
+					groupId: activeGroupId as string,
+					profileId: profileId,
+				}));
 			}
+		});
+
+		socket.on("memberCloseGroup", (data) => {
+			const { profileId } = data;
+			console.log("🚀 Thành viên đóng nhóm:", data);
+			
+			dispatch(removeActiveUser({
+				groupId: activeGroupId as string,
+				profileId: profileId,
+			}));
 		});
 
 	}, [])
@@ -325,10 +345,6 @@ const Page: React.FC = () => {
 						console.log("🚀 Conversation opened:", res);
 						const activeUsers = res.activeUsers;
 
-						if (activeGroupId && Array.isArray(activeUsers)) {
-							dispatch(setActiveUsers({ groupId: activeGroupId, profileIds: activeUsers }));
-						}
-
 						if (!activeGroupId) {
 							dispatch(setActiveGroup(activeGroupId));
 						}
@@ -357,11 +373,11 @@ const Page: React.FC = () => {
 						}
 
 						// Đánh dấu cuộc trò chuyện là đã đọc
-						socket.emit("markAsRead", {
-							profileId: userProfile.id,
-							groupId: activeGroupId,
-						});
-						console.log("✅ Đánh dấu cuộc trò chuyện là đã đọc:", activeGroupId);
+						// socket.emit("markAsRead", {
+						// 	profileId: userProfile.id,
+						// 	groupId: activeGroupId,
+						// });
+						// console.log("✅ Đánh dấu cuộc trò chuyện là đã đọc:", activeGroupId);
 
 					} else {
 						console.error("❌ Lỗi khi mở cuộc trò chuyện:", res.message);
@@ -442,6 +458,7 @@ const Page: React.FC = () => {
 		if ((!text.trim() && !imageFile) || !activeGroupId || !userProfile?.id) return;
 
 		try {
+			setIsSending(true);
 			let response: any;
 
 			// Nếu có file thì gửi FormData
@@ -457,7 +474,11 @@ const Page: React.FC = () => {
 					formData.append('message', text.trim());
 				}
 
-				response = await apiService.post(ENDPOINTS.CHAT.SEND, formData);
+				response = await apiService.post(ENDPOINTS.CHAT.SEND, formData).catch((error) => {
+					console.error("Lỗi khi gửi tin nhắn:", error);
+					toast.error("Lỗi khi gửi tin nhắn. Vui lòng thử lại.");
+					return null;
+				});
 				console.log("🚀 File đã gửi:", response);
 
 				if (response.statusCode === 200) {
@@ -469,7 +490,13 @@ const Page: React.FC = () => {
 						messageId: messageId,
 					});
 
+					setIsSending(false);
+
 					scrollToBottom();
+				} else {
+					console.error("Lỗi khi gửi tin nhắn:", response);
+					toast.error("Lỗi khi gửi tin nhắn. Vui lòng thử lại.");
+					setIsSending(false);
 				}
 			} else {
 				const messageData = {
@@ -492,7 +519,13 @@ const Page: React.FC = () => {
 						messageId: messageId,
 					});
 
+					setIsSending(false);
+
 					scrollToBottom();
+				} else {
+					console.error("Lỗi khi gửi tin nhắn:", response);
+					toast.error("Lỗi khi gửi tin nhắn. Vui lòng thử lại.");
+					setIsSending(false);
 				}
 			}
 
@@ -508,12 +541,11 @@ const Page: React.FC = () => {
 			const response: any = await apiService.delete(ENDPOINTS.CHAT.DELETE(messageId));
 			console.log("Tin nhắn đã được xóa:", response);
 
-			if (response.status === 'success') {
+			if (response.statusCode === 200) {
 				// Cập nhật Redux state để xóa tin nhắn khỏi giao diện
 				if (activeGroupId) {
 					dispatch(removeMessage({ groupId: activeGroupId, messageId }));
-					dispatch(clearLastMessage(
-						{ groupId: activeGroupId }));
+					dispatch(clearLastMessage({ groupId: activeGroupId }));
 				} else {
 					console.error("Không thể xóa tin nhắn: activeGroupId không tồn tại.");
 				}
@@ -543,7 +575,7 @@ const Page: React.FC = () => {
 				content: newContent.trim(),
 			});
 
-			if (response.status === "success") {
+			if (response.statusCode === 200) {
 				const updatedMessage = mapServerMessageToClient(response.data);
 
 				dispatch(addMessage({
@@ -569,6 +601,13 @@ const Page: React.FC = () => {
 			if (isNewGroupLoading) {
 				return;
 			}
+
+			socket.emit("close", {
+				profileId: userProfile?.id,
+				groupId: activeGroupId,
+			}, (res: any) => {
+				console.log("🚀 Socket close response:", res);
+			});
 
 			dispatch(setActiveGroup(id));
 			setIsMessagesLoading(true);
@@ -602,20 +641,6 @@ const Page: React.FC = () => {
 		dispatch(setActiveGroup("")); // Hoặc cập nhật lại activeGroup
 		setIsEndSidebarOpen(false);
 	};
-
-	
-
-	// console.log("List friend:", listFriend);
-	console.log("Online users:", onlineUsers);
-	console.log("Participants:", activeGroup?.participants);
-	console.log("Messages:", messages);
-	console.log("Active group ID:", activeGroupId);
-	console.log("Active group:", activeGroup);
-	console.log("Groups:", groups);
-	console.log("Unread counts:", unreadCount);
-	console.log("User profile:", userProfile);
-	console.log("User online status:", useOnlineStatus(userProfile?.id || ""));
-	console.log("Friend list:", listFriend);
 
 	return (
 		<div className="pt-[60px] flex gap-0 h-screen w-screen overflow-hidden">
@@ -665,7 +690,7 @@ const Page: React.FC = () => {
 										<ScrollArea className="w-full">
 											{searchResults.map((group) => {
 												// check online status without my profileId
-												const online = useOnlineStatus(group.participants?.find(p => p.id !== userProfile?.id)?.id || "");
+												const online = useOnlineStatus(group.participants?.find(p => p.userId !== userProfile?.id)?.userId || "");
 
 												const count = unreadCount[group.id] || 0;
 												return (
@@ -674,11 +699,13 @@ const Page: React.FC = () => {
 														id={group.id}
 														name={getGroupName(group)}
 														message={group.lastMessage}
+														isLastMessageOwn={group.lastMessage?.senderId === userProfile?.id}
 														time={group.lastMessage?.updatedAt ?? group.lastMessage?.createdAt ?? ""} // Bạn có thể định dạng từ `group.lastMessageAt` nếu có
 														unreadCount={count}
 														activeId={activeGroupId}
+														isGroup={group.isGroup}
 														online={online}
-															avatarUrl={group.isGroup ? group.avatarUrl : group.participants?.find(p => p.id !== userProfile?.id)?.avatarUrl}
+														avatarUrl={getGroupAvatar(group)}
 														onClick={() => handleClickConversation(group.id)}
 													/>
 												);
@@ -696,8 +723,8 @@ const Page: React.FC = () => {
 							<Tabs defaultValue="all" className="w-full">
 								<div className="flex items-center justify-between mb-4">
 									<TabsList>
-										<TabsTrigger value="all">All</TabsTrigger>
-										<TabsTrigger value="unread">Unread</TabsTrigger>
+										<TabsTrigger value="all">Tất cả</TabsTrigger>
+										<TabsTrigger value="unread">Chưa đọc</TabsTrigger>
 									</TabsList>
 									<Button
 										variant="outline"
@@ -727,7 +754,7 @@ const Page: React.FC = () => {
 											groups.map((group) => {
 
 												// check online status without my profileId
-												const online = useOnlineStatus(group.participants?.find(p => p.id !== userProfile?.id)?.id || "");
+												const online = useOnlineStatus(group.participants?.find(p => p.userId !== userProfile?.id)?.userId || "");
 
 												const count = unreadCount[group.id] || 0;
 
@@ -737,11 +764,13 @@ const Page: React.FC = () => {
 														id={group.id}
 														name={getGroupName(group)}
 														message={group.lastMessage}
+														isLastMessageOwn={group.lastMessage?.senderId === userProfile?.id}
 														time={group.lastMessage?.updatedAt ?? group.lastMessage?.createdAt ?? ""} // Bạn có thể định dạng từ `group.lastMessageAt` nếu có
 														unreadCount={count}
 														activeId={activeGroupId}
+														isGroup={group.isGroup}
 														online={online}
-															avatarUrl={group.isGroup ? group.avatarUrl : group.participants?.find(p => p.id !== userProfile?.id)?.avatarUrl}
+														avatarUrl={getGroupAvatar(group)}
 														onClick={() => handleClickConversation(group.id)}
 													/>
 												);
@@ -769,7 +798,7 @@ const Page: React.FC = () => {
 										groups.length > 0 ? (
 											groups.map((group) => {
 
-												const online = useOnlineStatus(group.participants?.find(p => p.id !== userProfile?.id)?.id || "");
+												const online = useOnlineStatus(group.participants?.find(p => p.userId !== userProfile?.id)?.userId || "");
 												const count = unreadCount[group.id] || 0;
 
 												return (
@@ -779,11 +808,13 @@ const Page: React.FC = () => {
 															id={group.id}
 															name={getGroupName(group)}
 															message={group.lastMessage}
+															isLastMessageOwn={group.lastMessage?.senderId === userProfile?.id}
 															time={group.lastMessage?.updatedAt ?? group.lastMessage?.createdAt ?? ""} // Bạn có thể định dạng từ `group.lastMessageAt` nếu có
 															unreadCount={count}
 															activeId={activeGroupId}
 															online={online}
-															avatarUrl={group.isGroup ? group.avatarUrl : group.participants?.find(p => p.id !== userProfile?.id)?.avatarUrl}
+															isGroup={group.isGroup}
+															avatarUrl={getGroupAvatar(group)}
 															onClick={() => handleClickConversation(group.id)}
 														/>
 													)
@@ -827,7 +858,7 @@ const Page: React.FC = () => {
 							<ChevronLeft className="w-5 h-5" />
 						</button>
 						<Avatar className="w-10 h-10 rounded-full overflow-hidden">
-							<AvatarImage src={activeGroup?.isGroup ? activeGroup.avatarUrl : activeGroup?.participants?.[0].avatarUrl} alt="Avatar" />
+							<AvatarImage src={getGroupAvatar(activeGroup)} alt="Avatar" />
 							<AvatarFallback>
 								{getGroupName(activeGroup)
 									?.split(" ")
@@ -839,7 +870,7 @@ const Page: React.FC = () => {
 						</Avatar>
 
 						<div className="flex flex-col">
-							<span className="text-sm font-semibold">{activeGroup?.isGroup ? activeGroup.name : activeGroup?.participants?.[0].name}</span>
+							<span className="text-sm font-semibold">{getGroupName(activeGroup)}</span>
 
 							{activeGroup?.isGroup ? (
 								<span className="text-xs text-gray-500 cursor-pointer hover:text-gray-600 flex items-center gap-1"
@@ -852,15 +883,15 @@ const Page: React.FC = () => {
 								// Online status 
 								<span className={cn(
 									"text-xs text-gray-500 cursor-pointer hover:text-gray-600 flex items-center gap-1",
-									useOnlineStatus(activeGroup?.participants?.find(p => p.id !== userProfile?.id)?.id || "") === "ACTIVE"
-										? "text-green-500"
-										: useOnlineStatus(activeGroup?.participants?.find(p => p.id !== userProfile?.id)?.id || "") === "ONLINE"
-											? "text-yellow-500"
+									useOnlineStatus(activeGroup?.participants?.find(p => p.userId !== userProfile?.id)?.userId || "") === "ACTIVE"
+										? "text-blue-500"
+										: useOnlineStatus(activeGroup?.participants?.find(p => p.userId !== userProfile?.id)?.userId || "") === "ONLINE"
+											? "text-green-500"
 											: "text-gray-500"
 								)}>
-									{useOnlineStatus(activeGroup?.participants?.find(p => p.id !== userProfile?.id)?.id || "") === "ACTIVE"
-										? "Active"
-										: useOnlineStatus(activeGroup?.participants?.find(p => p.id !== userProfile?.id)?.id || "") === "ONLINE"
+									{useOnlineStatus(activeGroup?.participants?.find(p => p.userId !== userProfile?.id)?.userId || "") === "ACTIVE"
+										? (<span className="animate-bounce">Active</span>)
+										: useOnlineStatus(activeGroup?.participants?.find(p => p.userId !== userProfile?.id)?.userId || "") === "ONLINE"
 											? "Online"
 											: "Offline"}
 								</span>
@@ -871,12 +902,6 @@ const Page: React.FC = () => {
 						</div>
 					</div>
 					<div className="flex items-center gap-2">
-						<button className="p-2 text-gray-400 hover:text-gray-600">
-							<Phone className="w-5 h-5" />
-						</button>
-						<button className="p-2 text-gray-400 hover:text-gray-600">
-							<Video className="w-5 h-5" />
-						</button>
 						<button
 							className="p-2 text-gray-400 hover:text-gray-600"
 							onClick={() => setIsEndSidebarOpen(!isEndSidebarOpen)}
@@ -932,6 +957,7 @@ const Page: React.FC = () => {
 												console.log("Tin nhắn đã được thu hồi:", response);
 												dispatch(recallMessage({
 													messageId: msg.id,
+													groupId: activeGroupId as string,
 												}));
 												dispatch(clearLastMessage({ groupId: activeGroupId as string }));
 												toast.success("Đã thu hồi tin nhắn");
@@ -964,11 +990,14 @@ const Page: React.FC = () => {
 
 				<ChatInput
 					value={text}
-					onChange={setText}
+					onChange={(value) => {
+						setText(value);
+					}}
 					onSend={(text, file) => {
 						handleSendMessage({ text, imageFile: file });
 						setText("");
 					}}
+					isSending={isSending}
 					onAttach={() => console.log("Đính kèm file")}
 				/>
 			</div>

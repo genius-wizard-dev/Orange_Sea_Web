@@ -1,8 +1,9 @@
 import { Message } from "@/types/message";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { on } from "events";
 
 interface ChatState {
-	messagesByGroup: Record<string, Message[]>; // groupId -> messages
+	messagesByGroup: Record<string, Message[]>; // groupId -> messages[]
 	unreadCount: Record<string, number>; // groupId -> unreadCount
 	activeUsersByGroup: Record<string, string[]>; // groupId -> profileIds
 	onlineUsers: string[]; // 
@@ -47,15 +48,15 @@ const chatSlice = createSlice({
 
 		recallMessage: (
 			state,
-			action: PayloadAction<{ messageId: string; }>
+			action: PayloadAction<{ groupId: string; messageId: string; }>
 		) => {
-			const { messageId } = action.payload;
-			for (const groupId in state.messagesByGroup) {
-				const messages = state.messagesByGroup[groupId];
-				const index = messages.findIndex((msg) => msg.id === messageId);
-				if (index !== -1) {
-					messages[index].isRecalled = true;
-					break;
+			const { groupId, messageId } = action.payload;
+			const messages = state.messagesByGroup[groupId];
+			if (messages) {
+				const message = messages.find((msg) => msg.id === messageId);
+				if (message) {
+					message.isRecalled = true;
+					message.recalledAt = new Date().toISOString();
 				}
 			}
 		},
@@ -72,6 +73,18 @@ const chatSlice = createSlice({
 			action: PayloadAction<{ groupId: string; count: number }>
 		) => {
 			state.unreadCount[action.payload.groupId] = action.payload.count;
+		},
+
+		plusUnreadCount: (
+			state,
+			action: PayloadAction<{ groupId: string; count: number }>
+		) => {
+			const groupId = action.payload.groupId;
+			if (state.unreadCount[groupId]) {
+				state.unreadCount[groupId] += action.payload.count;
+			} else {
+				state.unreadCount[groupId] = action.payload.count;
+			}
 		},
 
 		markMessagesAsRead: (
@@ -94,49 +107,54 @@ const chatSlice = createSlice({
 			}
 		},
 
-		setActiveUsers: (
+		addActiveUser: (
 			state,
-			action: PayloadAction<{ groupId: string; profileIds: string[] }>
+			action: PayloadAction<{ groupId: string; profileId: string }>
 		) => {
-			state.activeUsersByGroup[action.payload.groupId] = action.payload.profileIds;
+			const { groupId, profileId } = action.payload;
+			if (!state.activeUsersByGroup[groupId]) {
+				state.activeUsersByGroup[groupId] = [];
+			}
+			if (!state.activeUsersByGroup[groupId].includes(profileId) && profileId) {
+				state.activeUsersByGroup[groupId].push(profileId);
+			}
 		},
 
-		setUserOnlineStatus: (
+		removeActiveUser: (
 			state,
-			action: PayloadAction<{
-				groupId: string;
-				profileId: string;
-				isActive: boolean;
-				isOnline: boolean;
-			}>
+			action: PayloadAction<{ groupId: string; profileId: string }>
 		) => {
-			const { groupId, profileId, isActive, isOnline } = action.payload;
-			const list = state.activeUsersByGroup[groupId] || [];
-
-			if (isActive) {
-				if (!list.includes(profileId)) {
-					list.push(profileId);
-				}
-			} else {
-				const index = list.indexOf(profileId);
-				if (index !== -1) {
-					list.splice(index, 1);
-				}
+			const { groupId, profileId } = action.payload;
+			if (state.activeUsersByGroup[groupId]) {
+				state.activeUsersByGroup[groupId] = state.activeUsersByGroup[
+					groupId
+				].filter((id) => id !== profileId);
 			}
-			state.activeUsersByGroup[groupId] = list;
+		},
 
-			const onlineList = state.onlineUsers || [];
-			if(isOnline) {
-				if(!onlineList.includes(profileId)) {
-					onlineList.push(profileId);
-				}
-			} else {
-				const index = onlineList.indexOf(profileId);
-				if (index !== -1) {
-					list.splice(index, 1);
-				}
+		setOnlineUsers: (
+			state,
+			action: PayloadAction<{ onlineUsers: string[] }>
+		) => {
+			const { onlineUsers } = action.payload;
+			state.onlineUsers = onlineUsers;
+		},
+
+		removeOnlineUser: (
+			state,
+			action: PayloadAction<string>
+		) => {
+			const userId = action.payload;
+			state.onlineUsers = state.onlineUsers.filter((id) => id !== userId);
+		},
+
+		addOnlineUser: (
+			state,
+			action: PayloadAction<string>
+		) => {
+			if (!state.onlineUsers.includes(action.payload)) {
+				state.onlineUsers.push(action.payload);
 			}
-					
 		},
 
 		loadOlderMessages: (
@@ -160,7 +178,7 @@ const chatSlice = createSlice({
 			action: PayloadAction<{ groupId: string; messages: Message[]; nextCursor: string | null; hasMore: boolean }>
 		) => {
 			const { groupId, messages, nextCursor, hasMore } = action.payload;
-			
+
 			// Add messages to the group if they don't exist
 			if (!state.messagesByGroup[groupId]) {
 				state.messagesByGroup[groupId] = messages;
@@ -191,11 +209,15 @@ export const {
 	setUnreadCount,
 	updateUnreadCount,
 	markMessagesAsRead,
-	setActiveUsers,
-	setUserOnlineStatus,
+	addActiveUser,
+	removeActiveUser,
+	setOnlineUsers,
+	addOnlineUser,
+	removeOnlineUser,
 	loadOlderMessages,
 	loadInitialMessages,
 	removeMessage,
+	plusUnreadCount,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;

@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { openUserModal } from "@/redux/slices/userModal";
 import { fetchUserProfile } from "@/redux/thunks/userModal";
 import { AppDispatch } from "@/redux/store";
+import { set } from "zod";
 
 interface FriendDialogProps {
 	isOpen: boolean;
@@ -40,20 +41,34 @@ const AddFriendDialog: React.FC<FriendDialogProps> = ({ isOpen, onOpenChange }) 
 	const [isLoading, setIsLoading] = useState(false);
 	const [pendingSendRequest, setPendingSendRequest] = useState<string | null>(null);
 
-	// Debounce 1s
+	<Input
+		value={searchQuery}
+		onChange={(e) => {
+			console.log("onChange triggered:", e.target.value);
+			setSearchQuery(e.target.value);
+		}}
+	/>
+
 	useEffect(() => {
+
 		if (!searchQuery.trim()) {
 			setSearchResults([]);
 			return;
 		}
+
 		setIsLoading(true);
+
 		const delay = setTimeout(async () => {
 			await handleSearch();
 			setIsLoading(false);
 		}, 1000);
 
-		return () => { clearTimeout(delay); setIsLoading(false); };
+		return () => {
+			clearTimeout(delay);
+			setIsLoading(false);
+		};
 	}, [searchQuery]);
+
 
 	// Reset khi mở
 	useEffect(() => {
@@ -73,7 +88,7 @@ const AddFriendDialog: React.FC<FriendDialogProps> = ({ isOpen, onOpenChange }) 
 		setIsLoading(true);
 		try {
 			const result: any = await apiService.get(ENDPOINTS.FRIEND.SEARCH_NEW_FRIEND(searchQuery.trim()));
-			setSearchResults(result);
+			setSearchResults(result.data);
 		} catch (err) {
 			toast.error("Lỗi khi tìm kiếm người dùng");
 			setSearchResults([]);
@@ -98,7 +113,11 @@ const AddFriendDialog: React.FC<FriendDialogProps> = ({ isOpen, onOpenChange }) 
 					<Input
 						placeholder="Nhập tên người dùng..."
 						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
+						onChange={(e) => {
+							if (e.target.value === searchQuery) return;
+							else 
+								setSearchQuery(e.target.value);
+						}}
 						className="flex-1"
 						startIcon={Search}
 					/>

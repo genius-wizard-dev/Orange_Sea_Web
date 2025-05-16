@@ -13,6 +13,7 @@ import { RootState } from "@/redux/slices";
 import { openUserModal } from "@/redux/slices/userModal";
 import { AppDispatch } from "@/redux/store";
 import { getFriend, getReceived, getRequested } from "@/redux/thunks/friend";
+import { fetchGroupList } from "@/redux/thunks/group";
 import { fetchUserProfile } from "@/redux/thunks/userModal";
 import { ENDPOINTS } from "@/service/api.endpoint";
 import apiService from "@/service/api.service";
@@ -28,6 +29,7 @@ import {
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
+import { ScrollArea } from "../ui/scroll-area";
 
 interface FriendDialogProps {
   isOpen: boolean;
@@ -261,9 +263,10 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
     apiService
       .put(ENDPOINTS.FRIEND.REMOVE_FRIEND(friendShipId))
       .then(async (response: any) => {
-        if (response.status === "success") {
+        if (response.statusCode === 200) {
           toast.success("Đã hủy kết bạn");
           await fetchFriendData();
+          await dispatch(fetchGroupList() as any);
         }
       })
       .catch((error) => {
@@ -310,9 +313,10 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
         action: "ACCEPT",
       })
       .then(async (response: any) => {
-        if (response.status === "success") {
+        if (response.statusCode === 200) {
           await fetchFriendData();
           toast.success("Đã chấp nhận lời mời kết bạn");
+          await dispatch(fetchGroupList() as any);
         }
       })
       .catch((error) => {
@@ -331,7 +335,7 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
         action: "REJECT",
       })
       .then(async (response: any) => {
-        if (response.status === "success") {
+        if (response.statusCode === 200) {
           await fetchFriendData();
           toast.success("Đã từ chối lời mời kết bạn");
         }
@@ -366,63 +370,64 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="h-full w-full max-w-[90vw] max-h-[90vh] md:max-w-6xl overflow-hidden jsutify-start block">
-        <DialogHeader className="flex flex-row items-center justify-between">
-          <DialogTitle className="flex items-center gap-4">
-            <span>Bạn bè</span>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={fetchFriendData}
-              disabled={isFetching}
-              title="Làm mới danh sách"
-            >
-              {isFetching ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="lucide lucide-refresh-cw"
-                >
-                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-                  <path d="M21 3v5h-5" />
-                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-                  <path d="M3 21v-5h5" />
-                </svg>
-              )}
-            </Button>
+      <DialogContent className="w-full max-w-6xl h-[90vh] p-0 flex flex-col overflow-hidden">
+        {/* Header cố định */}
+        <DialogHeader className="shrink-0">
+          <DialogTitle className="flex items-center justify-between w-full px-4 py-2">
+            <div className="flex items-center gap-4">
+              <span>Bạn bè</span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={fetchFriendData}
+                disabled={isFetching}
+                title="Làm mới danh sách"
+              >
+                {isFetching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="lucide lucide-refresh-cw"
+                  >
+                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                    <path d="M21 3v5h-5" />
+                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                    <path d="M3 21v-5h5" />
+                  </svg>
+                )}
+              </Button>
+            </div>
           </DialogTitle>
-
         </DialogHeader>
-        <Tabs
-          defaultValue="friends"
-          className="flex-1 flex flex-col overflow-visible mt-4"
-        >
-          <TabsList className="w-full flex justify-start gap-2 mb-2 border-b">
-            <TabsTrigger value="friends">
-              <Users className="w-4 h-4 mr-1" />
-              Bạn bè
-            </TabsTrigger>
-            <TabsTrigger value="requests">
-              <UserPlus className="w-4 h-4 mr-1" />
-              Lời mời kết bạn
-            </TabsTrigger>
-            <TabsTrigger value="sent">
-              <Clock className="w-4 h-4 mr-1" />
-              Đã gửi
-            </TabsTrigger>
-          </TabsList>
 
-          <div className="flex-1">
+        {/* Scrollable content */}
+        <ScrollArea className="flex-1 overflow-auto px-4 py-2">
+          <Tabs defaultValue="friends" className="flex flex-col px-2">
+            <TabsList className="w-full flex justify-start gap-2 mb-2 border-b">
+              <TabsTrigger value="friends">
+                <Users className="w-4 h-4 mr-1" />
+                Bạn bè
+              </TabsTrigger>
+              <TabsTrigger value="requests">
+                <UserPlus className="w-4 h-4 mr-1" />
+                Lời mời kết bạn
+              </TabsTrigger>
+              <TabsTrigger value="sent">
+                <Clock className="w-4 h-4 mr-1" />
+                Đã gửi
+              </TabsTrigger>
+            </TabsList>
 
+            {/* Tab: Friends */}
             <TabsContent value="friends">
               {isFetching ? (
                 <LoadingState message="Đang tải danh sách bạn bè..." />
@@ -450,6 +455,7 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
               )}
             </TabsContent>
 
+            {/* Tab: Requests */}
             <TabsContent value="requests">
               {isFetching ? (
                 <LoadingState message="Đang tải lời mời kết bạn..." />
@@ -479,6 +485,7 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
               )}
             </TabsContent>
 
+            {/* Tab: Sent */}
             <TabsContent value="sent">
               {isFetching ? (
                 <LoadingState message="Đang tải lời mời đã gửi..." />
@@ -505,8 +512,8 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
                 </div>
               )}
             </TabsContent>
-          </div>
-        </Tabs>
+          </Tabs>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

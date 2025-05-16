@@ -33,14 +33,13 @@ export const mapGroupListToGroups = (
 				: undefined,
 			unreadCount: 0, // hoặc cập nhật từ backend nếu có
 			participants: raw.participants
-				// ?.filter((p: any) => p.userId !== )
 				.map((p: any) => ({
 					id: p.id,
 					userId: p.profileId,
 					role: p.role,
 					joinedAt: p.joinedAt,
 					name: p.name ?? '',
-					avatarUrl: p.user?.avatar ?? undefined,
+					avatarUrl: p.avatar ?? undefined,
 				})),
 		};
 	});

@@ -218,7 +218,7 @@ const ProfileDialog = ({ open, onOpenChange }: ProfileDialogProps) => {
       const result = await dispatch(
         updateProfile(formDataToSend as any)
       ).unwrap();
-      if (result.status === "success") {
+      if (result.statusCode === 200) {
         toast.success("Cập nhật thông tin thành công");
         setIsEditing(false);
         setSelectedFile(null);

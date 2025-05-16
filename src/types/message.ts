@@ -22,7 +22,7 @@ export interface Message {
 	forwardedFrom: string | null;
 	forwardedAt: string | null;
 	readBy: string[] | null;
-	// sender: Sender;
+	sender: Sender;
 }
 
 export interface MessageResponse {

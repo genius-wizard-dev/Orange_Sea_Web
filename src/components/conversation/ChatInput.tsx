@@ -1,4 +1,4 @@
-import { Paperclip, Smile, Send, Image, Sticker, X } from "lucide-react";
+import { Paperclip, Smile, Send, Image, Sticker, X, Clock } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import EmojiPicker from 'emoji-picker-react';
 
@@ -14,7 +14,7 @@ type ChatInputProps = {
 	value: string;
 	onChange: (val: string) => void;
 	onSend: (text: string, fileImage: any) => void;
-	// isSending?: boolean;
+	isSending?: boolean;
 	// setIsSending?: (val: boolean) => void;
 	onAttach?: () => void;
 };
@@ -31,7 +31,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 	value,
 	onChange,
 	onSend,
-	// isSending,
+	isSending,
 	onAttach,
 }) => {
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -89,6 +89,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
 	return (
 		<div className="bg-white/30 gap-2 border-t border-gray-200 backdrop-blur-lg shadow-md shadow-gray-300/50 p-2">
+
+			{isSending && (
+				<div className="absolute inset-0 bg-white/30 backdrop-blur-lg borderflex items-center justify-center background-white/30">
+					<Clock className="w-5 h-5 text-orange-500 animate-spin mr-3" /> <span> Đang gửi...</span>
+				</div>
+			)}
 
 			{imageFile && (
 				<div className="relative w-fit max-w-[250px] flex items-center gap-2 border rounded-xl p-2 shadow-md bg-white">

@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreVertical } from "lucide-react";
 import { Message, MessageType } from "@/types/message";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { useMemo } from "react";
 
 type MessageStatus = "sending" | "sent" | "seen";
 
@@ -38,7 +40,10 @@ export const formatMessageTime = (time: string): string => {
 	const diffMs = now.getTime() - date.getTime();
 	const diffMinutes = Math.floor(diffMs / 60000);
 	const diffHours = Math.floor(diffMinutes / 60);
-	const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+	const diffDays = Math.floor(diffHours / 24);
+	const diffWeeks = Math.floor(diffDays / 7);
+	const diffMonths = now.getMonth() - date.getMonth() + (now.getFullYear() - date.getFullYear()) * 12;
+	const diffYears = now.getFullYear() - date.getFullYear();
 
 	const hour = date.getHours().toString().padStart(2, "0");
 	const minute = date.getMinutes().toString().padStart(2, "0");
@@ -48,22 +53,18 @@ export const formatMessageTime = (time: string): string => {
 	if (diffHours < 24 && date.toDateString() === now.toDateString()) {
 		return `${diffHours} giờ trước`;
 	}
-
-	const yesterday = new Date();
-	yesterday.setDate(now.getDate() - 1);
-
-	if (date.toDateString() === now.toDateString()) {
-		return `Hôm nay, ${hour}:${minute}`;
+	if (diffDays < 7) return `${diffDays} ngày trước, ${hour}:${minute}`;
+	if (diffWeeks < 4) return `${diffWeeks} tuần trước, ${hour}:${minute}`;
+	if (diffMonths < 12) {
+		const day = date.getDate();
+		const month = date.getMonth() + 1;
+		return `${day} tháng ${month}`;
 	}
-	if (date.toDateString() === yesterday.toDateString()) {
-		return `Hôm qua, ${hour}:${minute}`;
-	}
-
-	const day = date.getDate().toString().padStart(2, "0");
-	const month = (date.getMonth() + 1).toString().padStart(2, "0");
+	const month = date.getMonth() + 1;
 	const year = date.getFullYear();
-	return `${day}/${month}/${year}, ${hour}:${minute}`;
+	return `${month} năm ${year}`;
 };
+
 
 // function ImageGallery({ images }: { images: string[] }) {
 // 	const visibleImages = Array.isArray(images) ? images.slice(0, 4) : [];
@@ -116,7 +117,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 		? "rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl rounded-br-md"
 		: "rounded-tr-2xl rounded-tl-2xl rounded-bl-md rounded-br-2xl";
 
-	const renderStatusIcon = () => {
+	const RenderStatusIcon = () => {
 		if (!isOwn || data.isRecalled) return null;
 		switch (status) {
 			case "sending":
@@ -130,20 +131,31 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 		}
 	};
 
+	// support shift + enter in data.content
+	const content = useMemo(() => {
+		if (!data.content) return "";
+		return data.content.split("\n").map((line, i) => (
+			<span key={i} className="whitespace-pre-wrap">
+				{i > 0 && <br />}
+				{line}
+			</span>
+		));
+	}, [data.content]);
+
 	const renderContent = () => {
 		if (data.isRecalled) {
 			return <span>Tin nhắn đã được thu hồi</span>;
 		}
 
 		if (data.type === MessageType.TEXT) {
-			return <div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, corner)}>{data.content}</div>;
+			return <div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, corner)}>{content}</div>;
 		}
 
 		if (data.type === MessageType.IMAGE) {
 			return (
 				<>
-					{data.content && (
-						<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, cornerMedia)}>{data.content}</div>
+					{content && (
+						<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, cornerMedia)}>{content}</div>
 					)}
 					<div className="flex flex-col gap-1">
 						<img src={data.fileUrl ?? undefined} alt="image" className="rounded-lg max-w-[240px] max-h-[180px] object-cover" />
@@ -155,8 +167,8 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 		if (data.type === MessageType.VIDEO) {
 			return (
 				<>
-					{data.content && (
-						<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, cornerMedia)}>{data.content}</div>
+					{content && (
+						<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, cornerMedia)}>{content}</div>
 					)}
 					<video controls className="rounded-lg max-w-[240px] max-h-[180px]">
 						<source src={data.fileUrl ?? undefined} />
@@ -169,8 +181,8 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 		if (data.type === MessageType.RAW) {
 			return (
 				<>
-					{data.content && (
-						<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, cornerMedia)}>{data.content}</div>
+					{content && (
+						<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, cornerMedia)}>{content}</div>
 					)}
 					<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, corner)}>
 						<div className="flex items-center gap-2">
@@ -192,7 +204,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 		<div className={cn("flex items-end gap-2 mb-3 group", isOwn ? "justify-end" : "justify-start")}>
 			{!isOwn && (
 				<Avatar className="w-8 h-8">
-					{/* <AvatarImage src={data.sender.avatar} />
+					<AvatarImage src={data.sender.avatar} />
 					<AvatarFallback>
 						{data.sender.name
 							?.split(" ")
@@ -200,23 +212,31 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 							.join("")
 							.slice(0, 2)
 							.toUpperCase()}
-					</AvatarFallback> */}
-					<AvatarImage src={""} />
-					<AvatarFallback>
-						NN
 					</AvatarFallback>
 				</Avatar>
 			)}
 
 			<div className="relative flex flex-col gap-1 group/message">
 
+				{data.editedAt && (
+					<span className="ml-2 italic text-gray-400 text-xs">(đã chỉnh sửa)</span>
+				)}
 				{renderContent()}
 
 				<div className={cn("flex items-center text-xs text-gray-400 mt-1",
 					isOwn ? "justify-end" : "justify-start",
 				)}>
 					<span>{formatMessageTime(data.createdAt)}</span>
-					{renderStatusIcon()}
+					{ (
+						<Tooltip>
+							<TooltipTrigger>
+								<RenderStatusIcon />
+							</TooltipTrigger>
+							<TooltipContent>
+								<p>Đã xem: {data.readBy?.length} người</p>
+							</TooltipContent>
+						</Tooltip>
+					)}
 				</div>
 
 				{/* Dropdown menu */}

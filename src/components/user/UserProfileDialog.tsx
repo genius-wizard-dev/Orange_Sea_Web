@@ -31,6 +31,7 @@ import {
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
+import { fetchGroupList } from "@/redux/thunks/group";
 
 interface UserProfileDialogProps {
   isOpen: boolean;
@@ -86,6 +87,7 @@ const UserProfileDialog: React.FC<UserProfileDialogProps> = ({
         dispatch(getFriend()),
         dispatch(getRequested()),
         dispatch(getReceived()),
+        dispatch(fetchGroupList()),
       ]);
     } catch {
       toast.error("Không thể hoàn tác");
@@ -99,7 +101,7 @@ const UserProfileDialog: React.FC<UserProfileDialogProps> = ({
     try {
       await dispatch(acceptFriendRequest(id)).unwrap();
       toast.success("Đã chấp nhận lời mời");
-      await Promise.all([dispatch(getFriend()), dispatch(getReceived())]);
+      await Promise.all([dispatch(getFriend()), dispatch(getReceived()), dispatch(getRequested()), dispatch(fetchGroupList())]);
     } catch {
       toast.error("Không thể chấp nhận");
     } finally {

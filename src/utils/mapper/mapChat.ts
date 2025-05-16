@@ -20,10 +20,10 @@ export const mapServerMessageToClient = (res: any): Message => {
 		forwardedFrom: res.forwardedFrom || null,
 		forwardedAt: res.forwardedAt || null,
 		readBy: res.readBy || [],
-		// sender: {
-		// 	id: res.sender.id,
-		// 	name: res.sender.name,
-		// 	avatar: res.sender.avatar,
-		// },
+		sender: {
+			id: res.sender.id,
+			name: res.sender.name,
+			avatar: res.sender.avatar,
+		},
 	};
 };
