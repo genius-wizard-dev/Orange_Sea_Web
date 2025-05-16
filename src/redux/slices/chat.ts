@@ -102,6 +102,8 @@ const chatSlice = createSlice({
 					const msg = messages.find((m) => m.id === id);
 					if (msg && msg.readBy && !msg.readBy.includes(profileId)) {
 						msg.readBy.push(profileId);
+						console.log("Marking message as read:", msg);
+						
 					}
 				});
 			}

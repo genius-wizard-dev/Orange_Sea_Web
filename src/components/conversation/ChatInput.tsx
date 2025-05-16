@@ -91,7 +91,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 		<div className="bg-white/30 gap-2 border-t border-gray-200 backdrop-blur-lg shadow-md shadow-gray-300/50 p-2">
 
 			{isSending && (
-				<div className="absolute inset-0 bg-white/30 backdrop-blur-lg borderflex items-center justify-center background-white/30">
+				<div className="absolute inset-0 bg-white/30 backdrop-blur-lg border flex items-center justify-center background-white/30">
 					<Clock className="w-5 h-5 text-orange-500 animate-spin mr-3" /> <span> Đang gửi...</span>
 				</div>
 			)}
