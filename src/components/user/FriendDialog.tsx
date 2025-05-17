@@ -50,10 +50,10 @@ const FriendCard: React.FC<
     isRemoving: boolean;
   }
 > = ({ profileId, name, avatar, id, onRemoveFriend, isRemoving, onModalOpen }) => (
-  <div className="p-4 bg-card rounded-xl shadow flex items-center gap-4 transition hover:bg-accent">
-    <Avatar className="cursor-pointer" onClick={() => {
+  <div className="p-4 bg-card rounded-xl shadow flex items-center gap-4 transition hover:bg-accent cursor-pointer" onClick={() => {
       onModalOpen(profileId);
     }}>
+    <Avatar className="cursor-pointer">
       <AvatarImage src={avatar} alt={name} />
       <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
     </Avatar>
@@ -61,12 +61,9 @@ const FriendCard: React.FC<
       <p className="font-medium">{name}</p>
       <p className="text-sm text-muted-foreground">Bạn bè</p>
     </div>
-    <Button variant="outline" size="sm">
-      <UserCheck className="w-4 h-4 mr-1" /> Nhắn tin
-    </Button>
     <Button
       variant="outline"
-      size="sm"
+      size="xs"
       onClick={() => {
         onRemoveFriend(id);
       }}
@@ -103,7 +100,7 @@ const RequestCard: React.FC<
     </div>
     <div className="flex gap-2">
       <Button
-        size="sm"
+        size="xs"
         variant="outline"
         onClick={() => onAccept(requestId)}
         disabled={isHandling}
@@ -112,7 +109,7 @@ const RequestCard: React.FC<
         Xác nhận
       </Button>
       <Button
-        size="sm"
+        size="xs"
         variant="ghost"
         onClick={() => onReject(requestId)}
         disabled={isHandling}
@@ -141,7 +138,7 @@ const SentCard: React.FC<
       <p className="text-sm text-muted-foreground">Đang chờ phản hồi</p>
     </div>
     <Button
-      size="sm"
+      size="xs"
       variant="outline"
       onClick={() => onCancel(id)}
       disabled={isRemoving}
@@ -370,7 +367,7 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-6xl h-[90vh] p-0 flex flex-col overflow-hidden">
+      <DialogContent className="h-full w-full max-w-[90vw] max-h-[90vh] md:max-w-6xl overflow-hidden flex flex-col jsutify-start">
         {/* Header cố định */}
         <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center justify-between w-full px-4 py-2">
@@ -411,7 +408,7 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
 
         {/* Scrollable content */}
         <ScrollArea className="flex-1 overflow-auto px-4 py-2">
-          <Tabs defaultValue="friends" className="flex flex-col px-2">
+          <Tabs defaultValue="friends" className="flex flex-col px-2 pb-2">
             <TabsList className="w-full flex justify-start gap-2 mb-2 border-b">
               <TabsTrigger value="friends">
                 <Users className="w-4 h-4 mr-1" />
@@ -474,6 +471,7 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
                         onReject={handleRejectRequest}
                         isHandling={pendingRequestAction === request.id}
                         onModalOpen={handleProfileOpen}
+
                       />
                     ))
                   ) : (

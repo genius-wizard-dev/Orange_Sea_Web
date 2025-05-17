@@ -32,6 +32,9 @@ import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
 import { fetchGroupList } from "@/redux/thunks/group";
+import { set } from "zod";
+import { setActiveGroup } from "@/redux/slices/group";
+import { on } from "events";
 
 interface UserProfileDialogProps {
   isOpen: boolean;
@@ -58,6 +61,9 @@ const UserProfileDialog: React.FC<UserProfileDialogProps> = ({
   const dispatch = useDispatch<AppDispatch>();
   const { friend, requested, received } =
     useSelector((s: RootState) => s.friend);
+  const { groups } = useSelector((s: RootState) => s.group);
+  const currentProfile = useSelector((s: RootState) => s.profile.profile);
+  
   const isFriend = friend.some((f) => f.profileId === userProfile.id);
   const sentRequest = requested.find((r) => r.profileId === userProfile.id);
   const receivedRequest = received.find(
@@ -163,7 +169,17 @@ const UserProfileDialog: React.FC<UserProfileDialogProps> = ({
               <Button
                 variant="outline"
                 className="flex-1 flex items-center justify-center gap-2"
-                onClick={() => {}}
+                onClick={() => {
+                  // search groupId by participantId only contains currentProfile.id and userProfile.id
+                  const groupId: string = groups.find((g) => 
+                    g.isGroup === false &&
+                    g.participants?.length === 2 &&
+                    g.participants.some((p) => p.userId === currentProfile?.id) &&
+                    g.participants.some((p) => p.userId === userProfile.id)
+                  )?.id || "";
+                  dispatch(setActiveGroup(groupId));
+                  onOpenChange(false);
+                }}
               >
                 <MessageCircleMore className="h-4 w-4" />
                 Nhắn tin

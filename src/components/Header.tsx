@@ -144,7 +144,11 @@ const TopNavigation: React.FC = () => {
                         src={`${userProfile?.avatar}`}
                         alt="avatar"
                       />
-                      <AvatarFallback>CN</AvatarFallback>
+                      <AvatarFallback>
+                        {userProfile?.name
+                          ? userProfile.name.slice(0, 2).toUpperCase()
+                          : "U"}
+                      </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
