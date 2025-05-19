@@ -2,6 +2,7 @@ import { Group } from "@/types/group";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { fetchGroupList } from "../thunks/group";
 import { accumulateMetadata } from "next/dist/lib/metadata/resolve-metadata";
+import { stat } from "fs";
 
 interface GroupState {
 	groups: Group[];
@@ -145,10 +146,13 @@ const groupSlice = createSlice({
 				group.participants = action.payload.participants;
 			}
 		},
-		updateGroupName: (state, action: PayloadAction<{ groupId: string; name: string }>) => {
-			const group = state.groups.find((g) => g.id === action.payload.groupId);
+		updateGroupInfo: (state, action) => {
+			const group = state.groups.find(g => g.id === action.payload.groupId);
 			if (group) {
 				group.name = action.payload.name;
+				if (action.payload.avatarUrl) {
+					group.avatarUrl = action.payload.avatarUrl;
+				}
 			}
 		},
 
@@ -158,12 +162,12 @@ const groupSlice = createSlice({
 				(group.participants ??= []).push(action.payload.member);
 			}
 		},
-		removeMember: (state, action: PayloadAction<{ groupId: string; memberId: string }>) => {
+		removeMember: (state, action: PayloadAction<{ groupId: string; member: any }>) => {
 			const group = state.groups.find((g) => g.id === action.payload.groupId);
 			if (group) {
-				if (group.participants) {
-					group.participants = group.participants.filter((m) => m.id !== action.payload.memberId);
-				}
+				group.participants = group.participants?.filter(
+					(member) => member.id !== action.payload.member.id
+				);
 			}
 		},
 		clearLastMessage: (state, action: PayloadAction<{ groupId: string }>) => {
@@ -202,7 +206,7 @@ export const {
 	setUnreadCountsToGroups,
 	updateLastMessage,
 	updateParticipants,
-	updateGroupName,
+	updateGroupInfo,
 	addMember,
 	removeMember,
 	clearLastMessage,

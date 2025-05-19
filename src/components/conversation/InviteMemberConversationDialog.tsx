@@ -34,10 +34,10 @@ export const InviteMemberConversationDialog: React.FC<InviteMemberConversationDi
 
     const handleAddMembers = () => {
         if (selectedFriendIds.length > 0) {
-            onAddMembers(selectedFriendIds); // Gọi hàm từ `EndSidebar`
-            setSelectedFriendIds([]); // Reset danh sách bạn bè đã chọn
-            setSearchTerm(""); // Reset từ khóa tìm kiếm
-            onClose(); // Đóng dialog
+            onAddMembers(selectedFriendIds);
+            setSelectedFriendIds([]);
+            setSearchTerm("");
+            onClose();
         }
     };
 

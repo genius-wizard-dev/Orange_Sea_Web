@@ -2,7 +2,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState } from "react";
-import { Friend } from "@/types/friend";
 import { Group } from "@/types/group";
 import { Avatar } from "@/components/ui/avatar";
 import { AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -37,11 +36,10 @@ export const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
         onClose(); // Đóng hộp thoại
     }
 	};
-	const list = groups;
-	const filteredGroups = list.filter((group) =>
-		// group.name?.toLowerCase().includes(searchTerm.toLowerCase())
-		true
-	);
+	const filteredGroups = groups.filter((group) => {
+		const search = searchTerm.toLowerCase();
+		return group.isGroup ? group.name.toLowerCase().includes(search) : group.participants?.[0].name.toLowerCase().includes(search) || group.participants?.[1]?.name.toLowerCase().includes(search);
+	});
 
 	return (
 		<Dialog open={open} onOpenChange={onClose}>
@@ -87,7 +85,7 @@ export const ForwardMessageDialog: React.FC<ForwardMessageDialogProps> = ({
 						Hủy
 					</Button>
 					<Button variant="default" 
-					onClick={() => handleForward()}
+					onClick={handleForward}
 					disabled={selectedGroupIds.length === 0}
 					>
 						Gửi

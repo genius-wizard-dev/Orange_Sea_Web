@@ -33,7 +33,9 @@ import { ForwardMessageDialog } from "@/components/conversation/ForwardMessageDi
 import { Group } from "@/types/group";
 import { toast } from "sonner";
 import { getDeviceId } from "@/utils/fingerprint";
-
+import { m } from "framer-motion";
+import { fetchGroupList } from "@/redux/thunks/group";
+import { Upload } from "lucide-react";
 
 
 const Page: React.FC = () => {
@@ -184,6 +186,17 @@ const Page: React.FC = () => {
 				groupId: message.groupId,
 				message: message
 			}));
+
+			dispatch(markMessagesAsRead({
+				groupId: message.groupId,
+				messageIds: [message.id],
+				profileId: userProfile?.id as string,
+			}));
+
+			socket.emit("markAsRead", {
+				profileId: userProfile?.id,
+				groupId: message.groupId,
+			});
 		});
 
 		socket.on("notifyMessage", (data) => {
@@ -256,8 +269,8 @@ const Page: React.FC = () => {
 		});
 
 		socket.on("messagesRead", (data) => {
-			const { profileId, groupId, messageIds } = data;
 			console.log("📩 Tin nhắn đã được đọc:", data);
+			const { profileId, groupId, messageIds } = data;
 
 			if (profileId && groupId && messageIds) {
 				dispatch(
@@ -267,13 +280,14 @@ const Page: React.FC = () => {
 						profileId,
 					})
 				);
+				dispatch(updateUnreadCount({ groupId, count: 0 }));
 			}
 		});
 
 		// client.emit('friendStatus', {
-        //   online: onlineFriends,
-        //   offline: offlineFriends,
-        // });
+		//   online: onlineFriends,
+		//   offline: offlineFriends,
+		// });
 		socket.on("friendStatus", (data) => {
 			dispatch(setOnlineUsers({ onlineUsers: data.online }));
 			console.log("🚀 Danh sách bạn bè trực tuyến:", data.online);
@@ -295,8 +309,8 @@ const Page: React.FC = () => {
 		socket.on("memberOpenGroup", (data) => {
 			const { profileId } = data;
 			console.log("🚀 Thành viên mở nhóm:", data);
-			
-			if(data.profileId !== userProfile?.id) {
+
+			if (data.profileId !== userProfile?.id) {
 				dispatch(addActiveUser({
 					groupId: activeGroupId as string,
 					profileId: profileId,
@@ -307,11 +321,21 @@ const Page: React.FC = () => {
 		socket.on("memberCloseGroup", (data) => {
 			const { profileId } = data;
 			console.log("🚀 Thành viên đóng nhóm:", data);
-			
+
 			dispatch(removeActiveUser({
 				groupId: activeGroupId as string,
 				profileId: profileId,
 			}));
+		});
+
+		socket.on("handleGroup", (data) => {
+			const { groupId, group } = data;
+			console.log("🚀 Cập nhật nhóm:", data);
+
+			// // if (groupId === activeGroupId) {
+			// // 	dispatch(setActiveGroup(groupId));
+			// // }
+			// dispatch(setGroups(group));
 		});
 
 	}, [])
@@ -537,26 +561,38 @@ const Page: React.FC = () => {
 	//Handle delete message
 	const handleDeleteMessage = async (messageId: string) => {
 		try {
-			// Gọi API với URL đúng
+			console.log("🚀 Xóa tin nhắn:", messageId);
+			if (!messageId) {
+				console.error("Lỗi: ID tin nhắn không hợp lệ.");
+				return;
+			}
+			console.log("Gửi yêu cầu xóa tin nhắn:", ENDPOINTS.CHAT.DELETE(messageId), { messageId: messageId });
 			const response: any = await apiService.delete(ENDPOINTS.CHAT.DELETE(messageId));
-			console.log("Tin nhắn đã được xóa:", response);
-
 			if (response.statusCode === 200) {
-				// Cập nhật Redux state để xóa tin nhắn khỏi giao diện
+				console.log("Tin nhắn đã được xóa:", response);
 				if (activeGroupId) {
 					dispatch(removeMessage({ groupId: activeGroupId, messageId }));
-					dispatch(clearLastMessage({ groupId: activeGroupId }));
+					// Nếu tin nhắn bị xóa là lastMessage của group thì clear lastMessage
+					const group = groups.find(g => g.id === activeGroupId);
+					if (group?.lastMessage?.id === messageId) {
+						dispatch(clearLastMessage({ groupId: activeGroupId }));
+					}
+					toast.success("Tin nhắn đã được xóa thành công!");
+					// Gửi sự kiện socket nếu cần thông báo cho các client khác
+					socket.emit('deleteMessage', {
+						messageId: messageId,
+						groupId: activeGroupId,
+					});
 				} else {
 					console.error("Không thể xóa tin nhắn: activeGroupId không tồn tại.");
 				}
-				alert("Tin nhắn đã được xóa thành công!");
 			} else {
 				console.error("Lỗi khi xóa tin nhắn:", response);
-				alert("Không thể xóa tin nhắn. Vui lòng thử lại.");
+				toast.error("Không thể xóa tin nhắn. Vui lòng thử lại.");
 			}
-		} catch (error) {
+		} catch (error: any) {
 			console.error("Lỗi khi gọi API xóa tin nhắn:", error);
-			alert("Đã xảy ra lỗi khi xóa tin nhắn. Vui lòng thử lại.");
+			toast.error(error.response?.data?.message || "Đã xảy ra lỗi khi xóa tin nhắn. Vui lòng thử lại.");
 		}
 	};
 
@@ -564,16 +600,17 @@ const Page: React.FC = () => {
 	const handleEditMessage = async (messageId: string, currentContent: string) => {
 		const newContent = prompt("Nhập nội dung mới cho tin nhắn:", currentContent);
 
-		// Kiểm tra nếu người dùng hủy hoặc để trống nội dung
 		if (!newContent || newContent.trim() === "") {
-			alert("Nội dung tin nhắn không được để trống.");
+			toast.warning("Nội dung tin nhắn không được để trống.");
 			return;
 		}
 
 		try {
-			const response: any = await apiService.put(ENDPOINTS.CHAT.EDIT(messageId), {
-				content: newContent.trim(),
-			});
+			// Sửa lại tên trường nếu backend yêu cầu là 'message'
+			const payload = { message: newContent.trim() }; // thử đổi thành 'message'
+			console.log("Gửi API edit:", ENDPOINTS.CHAT.EDIT(messageId), payload);
+
+			const response: any = await apiService.put(ENDPOINTS.CHAT.EDIT(messageId), payload);
 
 			if (response.statusCode === 200) {
 				const updatedMessage = mapServerMessageToClient(response.data);
@@ -583,13 +620,93 @@ const Page: React.FC = () => {
 					message: updatedMessage,
 				}));
 
-				alert("Tin nhắn đã được chỉnh sửa thành công!");
+				socket.emit('editMessage', {
+					messageId: updatedMessage.id,
+					groupId: updatedMessage.groupId,
+					editedMessage: response.data,
+				});
+
+				toast.success("Tin nhắn đã được chỉnh sửa thành công!");
 			} else {
-				alert(response.message || "Không thể chỉnh sửa tin nhắn. Vui lòng thử lại.");
+				toast.warning(response.message || "Không thể chỉnh sửa tin nhắn. Vui lòng thử lại.");
 			}
 		} catch (error) {
 			console.error("Lỗi khi gọi API chỉnh sửa tin nhắn:", error);
-			alert("Đã xảy ra lỗi khi chỉnh sửa tin nhắn. Vui lòng thử lại.");
+			toast.warning("Đã xảy ra lỗi khi chỉnh sửa tin nhắn. Vui lòng thử lại.");
+		}
+	};
+
+	//handle recall message
+	const handleRecallMessage = async (messageId: string) => {
+		console.log("🚀 Thu hồi tin nhắn:", messageId);
+		if (!messageId) {
+			console.error("Lỗi: ID tin nhắn không hợp lệ.");
+			return;
+		}
+		console.log("Gửi yêu cầu thu hồi tin nhắn:", ENDPOINTS.CHAT.RECALL(messageId), { messageId: messageId });
+		try {
+			const response: any = await apiService.put(ENDPOINTS.CHAT.RECALL(messageId), { messageId: messageId });
+			if (response.statusCode === 200) {
+				console.log("Tin nhắn đã được thu hồi:", response);
+				dispatch(recallMessage({
+					messageId: messageId,
+					groupId: activeGroupId as string,
+				}));
+				dispatch(clearLastMessage({ groupId: activeGroupId as string }));
+				toast.success("Đã thu hồi tin nhắn");
+				socket.emit('recallMessage', {
+					messageId: messageId,
+				});
+			}
+		} catch (error: any) {
+			console.error("Lỗi khi thu hồi tin nhắn:", error);
+			toast.warning(error.response?.data?.message || "Đã xảy ra lỗi khi thu hồi tin nhắn.");
+		}
+
+	}
+
+	const handleForwardMessage = async (selectedGroupIds: string[]) => {
+		try {
+			const responses = await Promise.all(
+				selectedGroupIds.map(async (groupId) => {
+					try {
+						const response: any = await apiService.post(ENDPOINTS.CHAT.FORWARD, {
+							messageId: forwardMessageId,
+							groupId: groupId,
+						});
+						console.log(`Tin nhắn đã được chuyển tiếp đến nhóm ${groupId}:`, response);
+
+						if (response.statusCode === 200) {
+							const { messageId } = response.data;
+							if (!messageId) {
+								console.error("Dữ liệu trả về từ API forward không hợp lệ:", response.data);
+								return response;
+							}
+
+							// Emit socket event để các client khác cập nhật real-time
+							socket.emit('sendMessage', {
+								messageId,
+							});
+
+							toast.success("Chuyển tiếp tin nhắn thành công!");
+						} else {
+							console.error(`Lỗi khi chuyển tiếp tin nhắn đến nhóm ${groupId}:`, response);
+							toast.error("Chuyển tiếp tin nhắn thất bại!");
+						}
+
+						return response;
+					} catch (error) {
+						console.error(`Lỗi khi chuyển tiếp tin nhắn đến nhóm ${groupId}:`, error);
+						toast.warning("Lỗi khi chuyển tiếp tin nhắn!");
+						return { status: 'error', groupId, error };
+					}
+				})
+			);
+
+			//setIsForwarOpen(false); // Đóng hộp thoại sau khi hoàn tất
+		} catch (error) {
+			console.error("Lỗi khi chuyển tiếp tin nhắn:", error);
+			toast.error("Đã xảy ra lỗi khi chuyển tiếp tin nhắn. Vui lòng thử lại.");
 		}
 	};
 
@@ -944,31 +1061,8 @@ const Page: React.FC = () => {
 									isOwn={msg.senderId === userProfile?.id}
 									data={msg}
 									onRecall={async () => {
-										console.log("ID tin nhắn:", msg.id);
-										if (!msg.id) {
-											console.error("Lỗi: ID tin nhắn không hợp lệ.");
-											return;
-										}
-										console.log("Gửi yêu cầu thu hồi tin nhắn:", ENDPOINTS.CHAT.RECALL(msg.id), { messageId: msg.id });
-
-										try {
-											const response: any = await apiService.put(ENDPOINTS.CHAT.RECALL(msg.id), { messageId: msg.id });
-											if (response.statusCode === 200) {
-												console.log("Tin nhắn đã được thu hồi:", response);
-												dispatch(recallMessage({
-													messageId: msg.id,
-													groupId: activeGroupId as string,
-												}));
-												dispatch(clearLastMessage({ groupId: activeGroupId as string }));
-												toast.success("Đã thu hồi tin nhắn");
-												socket.emit('recallMessage', {
-													messageId: msg.id,
-												});
-											}
-										} catch (error: any) {
-											console.error("Lỗi khi thu hồi tin nhắn:", error);
-											alert(error.response?.data?.message || "Đã xảy ra lỗi khi thu hồi tin nhắn.");
-										}
+										handleRecallMessage(msg.id);
+										console.log("ID tin nhắn cần thu hồi:", msg.id);
 									}}
 									onForward={() => {
 										setForwardMessageId(msg.id);
@@ -1026,102 +1120,21 @@ const Page: React.FC = () => {
 
 			<CreateConversationDialog
 				isOpen={isCreateConversationOpen}
-				onClose={() => setIsCreateConversationOpen(false)} // Đóng dialog
-				friends={listFriend} // Danh sách bạn bè
-				onCreate={async (selectedFriendIds, groupName) => {
-					console.log("Tạo cuộc trò chuyện với bạn bè:", selectedFriendIds, "Tên nhóm:", groupName);
-
-					try {
-						// Gọi API để tạo nhóm
-						const response: any = await apiService.post(ENDPOINTS.GROUP.CREATE, {
-							participantIds: selectedFriendIds,
-							name: groupName,
-						});
-						console.log("tên nhóm", groupName);
-						console.log("Phản hồi từ API:", response);
-						// Kiểm tra phản hồi từ API
-
-						if (response.id) {
-							const responseData = response;
-							console.log("Nhóm được tạo thành công:", responseData);
-
-							// Cập nhật danh sách nhóm trong Redux
-							dispatch(setGroups([...groups, responseData]));
-
-							// Đặt nhóm mới làm nhóm hoạt động
-							dispatch(setActiveGroup(responseData.id));
-
-							// Đóng dialog
-							setIsCreateConversationOpen(false);
-						} else {
-							console.error("Lỗi khi tạo nhóm:", response);
-							alert("Không thể tạo nhóm. Vui lòng thử lại.");
-						}
-					} catch (error: any) {
-						if (error.response) {
-							console.error("Lỗi từ API:", error.response.data); // Log chi tiết lỗi từ máy chủ
-						} else {
-							console.error("Lỗi không xác định:", error);
-						}
-						alert("Đã xảy ra lỗi khi tạo nhóm. Vui lòng thử lại.");
-					}
+				onClose={() => setIsCreateConversationOpen(false)}
+				friends={listFriend}
+				onCreate={(group) => {
+					dispatch(fetchGroupList() as any);
+					dispatch(setActiveGroup(group.id));
+					toast.success("Tạo nhóm thành công!");
+					socket.emit('handleGroup', { groupId: group.id, group: group });
 				}}
 			/>
 
 			<ForwardMessageDialog
 				open={isForwardOpen}
 				onClose={() => setIsForwarOpen(false)}
-				onForward={async (selectedGroupIds) => {
-					try {
-						const responses = await Promise.all(
-							selectedGroupIds.map(async (groupId) => {
-								try {
-									const response: any = await apiService.post(ENDPOINTS.CHAT.FORWARD, {
-										profileId: userProfile?.id,
-										messageId: forwardMessageId,
-										groupId,
-									});
-									console.log(`Tin nhắn đã được chuyển tiếp đến nhóm ${groupId}:`, response);
-
-									if (response.status === 'success') {
-										const messageData = response.data;
-
-										// Cập nhật Redux state
-										const mappedMessage = mapServerMessageToClient(messageData);
-										dispatch(addMessage({ groupId: messageData.groupId, message: mappedMessage }));
-										dispatch(updateLastMessage({
-											groupId: messageData.groupId,
-											message: messageData,
-										}));
-
-										// Gửi sự kiện socket
-										socket.emit('send', {
-											messageId: messageData.id,
-											groupId: messageData.groupId,
-										});
-
-										console.log("Tin nhắn đã được xử lý sau khi chuyển tiếp:", messageData);
-									} else {
-										console.error(`Lỗi khi chuyển tiếp tin nhắn đến nhóm ${groupId}:`, response);
-									}
-
-									return response;
-								} catch (error) {
-									console.error(`Lỗi khi chuyển tiếp tin nhắn đến nhóm ${groupId}:`, error);
-									return { status: 'error', groupId, error };
-								}
-							})
-						);
-
-						alert("Tin nhắn đã được chuyển tiếp thành công!");
-					} catch (error) {
-						console.error("Lỗi khi chuyển tiếp tin nhắn:", error);
-						alert("Đã xảy ra lỗi khi chuyển tiếp tin nhắn. Vui lòng thử lại.");
-					}
-
-					setIsForwarOpen(false); // Đóng hộp thoại sau khi hoàn tất
-				}}
-				groups={groups} // Truyền danh sách nhóm từ Redux state
+				onForward={() => handleForwardMessage}
+				groups={groups}
 			/>
 
 

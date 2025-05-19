@@ -227,16 +227,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 					isOwn ? "justify-end" : "justify-start",
 				)}>
 					<span>{formatMessageTime(data.createdAt)}</span>
-					{ (
-						<Tooltip>
-							<TooltipTrigger>
-								<RenderStatusIcon />
-							</TooltipTrigger>
-							<TooltipContent>
-								<p>Đã xem: {data.readBy?.length} người</p>
-							</TooltipContent>
-						</Tooltip>
-					)}
+					<RenderStatusIcon />
 				</div>
 
 				{/* Dropdown menu */}
@@ -262,15 +253,18 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 									</DropdownMenuItem>
 								</>
 							)}
-							<DropdownMenuItem onClick={onForward}>
+							<DropdownMenuItem
+								onClick={() => {
+									// Đảm bảo DropdownMenu đã đóng hoàn toàn trước khi mở Dialog
+									requestAnimationFrame(() => {
+										onForward();
+									});
+								}}
+							>
 								Chuyển tiếp
 							</DropdownMenuItem>
 							<DropdownMenuItem
-								onClick={() => {
-									if (window.confirm("Bạn có chắc chắn muốn xóa tin nhắn này không?")) {
-										onDelete?.();
-									}
-								}}
+								onClick={onDelete}
 							>
 								<span className="text-red-500">Xoá</span>
 							</DropdownMenuItem>

@@ -40,8 +40,10 @@ export const ENDPOINTS = {
     RENAME: (id: string) => `${BASE_ENDPOINT}/group/${id}/rename`,
     DELETE: (id: string) => `${BASE_ENDPOINT}/group/${id}`,
     ADD_MEMBER: (id: string) => `${BASE_ENDPOINT}/group/${id}/participant`,
-    REMOVE_MEMBER: (id: string, memberId: string) =>
-      `${BASE_ENDPOINT}/group/${id}/members/${memberId}`,
+    REMOVE_MEMBER: (id: string) => `${BASE_ENDPOINT}/group/${id}/participant`,
+    AVATAR: (id: string) => `${BASE_ENDPOINT}/group/${id}/avatar`,
+    LEAVE: (id: string) => `${BASE_ENDPOINT}/group/${id}/leave`,
+    OWNER: (id: string) => `${BASE_ENDPOINT}/group/${id}/owner`,
   },
   CHAT: {
     SEND: `${BASE_ENDPOINT}/chat/send`,
@@ -56,5 +58,6 @@ export const ENDPOINTS = {
     REACTIONS: (messageId: string) => `${BASE_ENDPOINT}/chat/message/${messageId}/reactions`,
     ADD_REACTION: (messageId: string) => `${BASE_ENDPOINT}/chat/message/${messageId}/reaction`,
     EDIT: (messageId: string) => `${BASE_ENDPOINT}/chat/edit/${messageId}`,
+    MEDIA_LIST: (groupId: string) => `${BASE_ENDPOINT}/chat/media/${groupId}`,
   }
 };

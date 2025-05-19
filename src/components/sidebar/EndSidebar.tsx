@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -16,9 +16,8 @@ import { Input } from '../ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/redux/slices';
-import { addMember, removeMember, updateGroupName } from '@/redux/slices/group';
+import { addMember, removeMember, updateGroupInfo } from '@/redux/slices/group';
 import { ENDPOINTS } from '@/service/api.endpoint';
-import axios from 'axios';
 import apiService from "@/service/api.service";
 import { ArrowLeft, Bell, ChevronDown, Pencil, Search, UserPlus } from 'lucide-react';
 import { Friend } from '@/types/friend';
@@ -26,6 +25,10 @@ import { InviteMemberConversationDialog } from '../conversation/InviteMemberConv
 import { Profile } from '@/types/profile';
 import { Group } from '@/types/group';
 import { toast } from 'sonner';
+import { Socket } from "socket.io-client";
+import { getSocket } from "@/lib/socket";
+import { Upload } from "lucide-react";
+import { fetchGroupList } from '@/redux/thunks/group';
 
 interface EndSidebarProps {
     children?: React.ReactNode;
@@ -61,11 +64,23 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
     const [showGroupOptions, setShowGroupOptions] = useState(false);
     const groupOptionsRef = useRef<HTMLDivElement>(null);
 
+    const [isChangeOwnerDialogOpen, setIsChangeOwnerDialogOpen] = useState(false);
+    const [selectedNewOwnerId, setSelectedNewOwnerId] = useState<string | null>(null);
+
+    const [isRemoveMemberDialogOpen, setIsRemoveMemberDialogOpen] = useState(false);
+    const [selectedRemoveMemberId, setSelectedRemoveMemberId] = useState<string | null>(null);
+
+    const [isLeaveGroupDialogOpen, setIsLeaveGroupDialogOpen] = useState(false);
+
+    const [mediaList, setMediaList] = useState<any[]>([]);
+    const [fileList, setFileList] = useState<any[]>([]);
+    const [mediaCursor, setMediaCursor] = useState<string | null>(null);
+    const [fileCursor, setFileCursor] = useState<string | null>(null);
+    const [loadingMedia, setLoadingMedia] = useState(false);
+    const [loadingFile, setLoadingFile] = useState(false);
+
     const { friend: listFriend } = useSelector((state: RootState) => state.friend);
-    const [isAddMemberDialogOpen, setIsAddMemberDialogOpen] = useState(false);
-
-
-
+    const socket: Socket = getSocket();
 
     const dispatch = useDispatch();
 
@@ -82,37 +97,83 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
         setNewGroupName(activeGroup?.name || "");
     };
 
-    const handleCloseEditGroupNameDialog = () => {
-        setIsEditGroupNameDialogOpen(false);
+    const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
+    const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+    const avatarInputRef = useRef<HTMLInputElement>(null);
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        if (selectedAvatarFile) {
+            const url = URL.createObjectURL(selectedAvatarFile);
+            setAvatarPreviewUrl(url);
+            return () => URL.revokeObjectURL(url);
+        } else {
+            setAvatarPreviewUrl(null);
+        }
+    }, [selectedAvatarFile]);
+
+    const handleAvatarClick = () => {
+        if (avatarInputRef.current) {
+            avatarInputRef.current.click();
+        }
     };
 
-    const handleSaveGroupName = async () => {
+    const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) setSelectedAvatarFile(file);
+    };
+
+    const handleSaveGroupInfo = async () => {
+        if (!activeGroup) return;
         if (!newGroupName.trim()) {
             toast.warning("Tên nhóm không được để trống.");
             return;
         }
-
-        if (activeGroup) {
-            try {
-                // Gọi API để đổi tên nhóm
-                const response: any = await apiService.post(ENDPOINTS.GROUP.RENAME(activeGroup.id), {
-                    name: newGroupName.trim(),
-                });
-                console.log("Response from API:", response);
-                if (response.statusCode === 200) {
-                    await Promise.all([
-                        dispatch(updateGroupName({ groupId: activeGroup.id, name: newGroupName.trim() })),
-                        toast.success("Tên nhóm đã được cập nhật thành công!"),
-                        handleCloseEditGroupNameDialog()
-                    ])
+        setIsSaving(true);
+        try {
+            // Nếu có avatar mới, upload trước
+            let avatarUrl = activeGroup.avatarUrl;
+            if (selectedAvatarFile) {
+                const formData = new FormData();
+                formData.append("avatar", selectedAvatarFile);
+                const res: any = await apiService.put(
+                    ENDPOINTS.GROUP.AVATAR(activeGroup.id),
+                    formData
+                );
+                if (res.statusCode === 200 && res.data?.avatarUrl) {
+                    console.log("avatarUrl", res.data.avatarUrl);
+                    avatarUrl = res.data.avatarUrl;
                 } else {
-                    console.error("Lỗi khi đổi tên nhóm:", response.message);
-                    toast.warning(response.message || "Không thể đổi tên nhóm. Vui lòng thử lại.");
+                    toast.error(res.message || "Cập nhật ảnh nhóm thất bại");
+                    setIsSaving(false);
+                    return;
                 }
-            } catch (error) {
-                console.error("Lỗi khi gọi API đổi tên nhóm:", error);
-                toast.warning("Đã xảy ra lỗi khi đổi tên nhóm. Vui lòng thử lại.");
             }
+            // Đổi tên nhóm (nếu tên thay đổi)
+            if (newGroupName.trim() !== activeGroup.name) {
+                const response: any = await apiService.post(
+                    ENDPOINTS.GROUP.RENAME(activeGroup.id),
+                    { name: newGroupName.trim() }
+                );
+                if (response.statusCode !== 200) {
+                    toast.warning(response.message || "Không thể đổi tên nhóm. Vui lòng thử lại.");
+                    setIsSaving(false);
+                    return;
+                }
+                dispatch(updateGroupInfo({ groupId: activeGroup.id, name: newGroupName.trim() }));
+            }
+            // Cập nhật avatar trong redux nếu có thay đổi
+            if (avatarUrl !== activeGroup.avatarUrl) {
+                dispatch(updateGroupInfo({ groupId: activeGroup.id, name: newGroupName.trim(), avatarUrl }));
+            }
+            toast.success("Cập nhật nhóm thành công!");
+            setIsEditGroupNameDialogOpen(false);
+            setSelectedAvatarFile(null);
+            setAvatarPreviewUrl(null);
+        } catch (error) {
+            toast.error("Có lỗi xảy ra khi cập nhật nhóm");
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -129,24 +190,19 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
     const handleAddMembersToGroup = async (selectedFriendIds: string[]) => {
         if (!selectedGroup) return;
 
-        console.log("ID của nhóm:", selectedGroup.id);
-        console.log("Dữ liệu gửi lên API:", {
-            memberIds: selectedFriendIds,
-        });
-
         try {
-            // Gọi API để thêm thành viên vào nhóm
-            const response: any = await apiService.put(ENDPOINTS.GROUP.ADD_MEMBER(selectedGroup.id), {
-                memberIds: selectedFriendIds,
-            });
-
-            console.log("Response từ API:", response);
+            // Gọi API để thêm thành viên vào nhóm với đúng tên trường
+            const response: any = await apiService.put(
+                ENDPOINTS.GROUP.ADD_MEMBER(selectedGroup.id),
+                { participantIds: selectedFriendIds } // Đúng tên trường backend yêu cầu
+            );
 
             if (response.statusCode === 200) {
-                // Cập nhật Redux state với các thành viên mới
                 selectedFriendIds.forEach((memberId) => {
                     dispatch(addMember({ groupId: selectedGroup.id, member: { id: memberId, name: "Thành viên mới" } }));
                 });
+
+                socket.emit('handleMemberGroup', { groupId: selectedGroup.id });
 
                 toast.success("Thêm thành viên thành công!");
             } else {
@@ -162,16 +218,124 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
 
 
 
-    const handleRemoveMember = async (memberId: string) => {
-        if (activeGroup) {
-            try {
-                await apiService.delete(ENDPOINTS.GROUP.REMOVE_MEMBER(activeGroup.id, memberId));
-                dispatch(removeMember({ groupId: activeGroup.id, memberId }));
-            } catch (error) {
-                console.error('Failed to remove member:', error);
+    const handleRemoveMember = async (userId: string) => {
+        if (!activeGroup) return;
+
+        try {
+            // If your API expects participantIds as a query param, append it to the URL:
+            const response: any = await apiService.delete(
+                ENDPOINTS.GROUP.REMOVE_MEMBER(activeGroup.id) + `?participantIds=${encodeURIComponent(userId)}`
+            );
+
+            if (response.statusCode === 200) {
+                dispatch(removeMember({ groupId: activeGroup.id, member: { id: userId } }));
+                socket.emit('handleMemberGroup', { groupId: activeGroup.id });
+                toast.success("Đã xóa thành viên khỏi nhóm!");
+            } else {
+                toast.warning(response.message || "Không thể xóa thành viên. Vui lòng thử lại.");
             }
+        } catch (error) {
+            console.error("Lỗi khi xóa thành viên:", error);
+            toast.warning("Không thể xóa thành viên. Vui lòng thử lại sau.");
         }
     };
+
+    const handleDeleteGroup = async (groupId: string) => {
+        try {
+            const response: any = await apiService.delete(ENDPOINTS.GROUP.DELETE(groupId));
+            if (response.statusCode === 200) {
+                toast.success("Xóa nhóm thành công!");
+                setIsRemoveGroupDialogOpen(false);
+                if (onRemoveGroup) onRemoveGroup(groupId);
+                dispatch(fetchGroupList() as any); // Gọi lại danh sách nhóm sau khi xóa
+                socket.emit('handleGroup', { groupId });
+                if (onClose) onClose();
+            } else {
+                toast.error(response.message || "Không thể xóa nhóm. Vui lòng thử lại.");
+            }
+        } catch (error) {
+            toast.error("Có lỗi xảy ra khi xóa nhóm.");
+        }
+    };
+
+    const handleChangeOwner = async (groupId: string, newOwnerId: string) => {
+        try {
+            const response: any = await apiService.put(
+                ENDPOINTS.GROUP.OWNER(groupId),
+                { newOwnerId }
+            );
+            if (response.statusCode === 200) {
+                toast.success("Chuyển quyền trưởng nhóm thành công!");
+                dispatch(fetchGroupList() as any);
+                socket.emit('handleGroup', { groupId });
+            } else {
+                toast.error(response.message || "Không thể chuyển quyền. Vui lòng thử lại.");
+            }
+        } catch (error) {
+            toast.error("Có lỗi xảy ra khi chuyển quyền trưởng nhóm.");
+        }
+    };
+
+    const handleLeaveGroup = async (groupId: string) => {
+        try {
+            const response: any = await apiService.delete(ENDPOINTS.GROUP.LEAVE(groupId));
+            if (response.statusCode === 200) {
+                toast.success("Bạn đã rời khỏi nhóm!");
+                setIsLeaveGroupDialogOpen(false);
+                if (onLeaveGroup) onLeaveGroup(groupId);
+                dispatch(fetchGroupList() as any);
+                socket.emit('handleGroup', { groupId });
+                if (onClose) onClose();
+            } else {
+                toast.error(response.message || "Không thể rời nhóm. Vui lòng thử lại.");
+            }
+        } catch (error) {
+            toast.error("Có lỗi xảy ra khi rời nhóm.");
+        }
+    };
+
+    const fetchMedia = async (cursor?: string) => {
+        if (!activeGroup?.id) return;
+        setLoadingMedia(true);
+        try {
+            // Không truyền type
+            const res: any = await apiService.get(
+                ENDPOINTS.CHAT.MEDIA_LIST(activeGroup.id)
+            );
+            // Nếu backend trả về cả IMAGE, VIDEO, FILE, bạn có thể filter ở FE:
+            const data = Array.isArray(res.data)
+                ? res.data.filter((item: any) => item.type === "IMAGE" || item.type === "VIDEO")
+                : [];
+            setMediaList(cursor ? [...mediaList, ...data] : data);
+            setMediaCursor(res.cursor || null);
+        } finally {
+            setLoadingMedia(false);
+        }
+    };
+
+    const fetchFiles = async (cursor?: string) => {
+        if (!activeGroup?.id) return;
+        setLoadingFile(true);
+        try {
+            // Không truyền type
+            const res: any = await apiService.get(
+                ENDPOINTS.CHAT.MEDIA_LIST(activeGroup.id)
+            );
+            // Filter lấy file
+            const data = Array.isArray(res.data)
+                ? res.data.filter((item: any) => item.type === "FILE")
+                : [];
+            setFileList(cursor ? [...fileList, ...data] : data);
+            setFileCursor(res.cursor || null);
+        } finally {
+            setLoadingFile(false);
+        }
+    }; 
+    useEffect(() => {
+        if (viewAll === 'media') fetchMedia();
+        if (viewAll === 'files') fetchFiles();
+        // eslint-disable-next-line
+    }, [viewAll, activeGroup?.id]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setNewGroupName(e.target.value);
@@ -216,11 +380,27 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                 <h2 className="text-xl font-semibold">Media</h2>
             </div>
             <div className="overflow-auto">
-                <div className="grid grid-cols-3 gap-2">
-                    {Array.from({ length: 20 }).map((_, index) => (
-                        <div key={index} className="w-full h-24 bg-gray-200 rounded" />
-                    ))}
-                </div>
+                {loadingMedia ? (
+                    <div>Đang tải...</div>
+                ) : (
+                    <div className="grid grid-cols-3 gap-2">
+                        {mediaList.length === 0 && <div className="col-span-3 text-center text-gray-500">Không có media</div>}
+                        {mediaList.map((item) => (
+                            <div key={item.id} className="w-full h-24 bg-gray-200 rounded flex items-center justify-center overflow-hidden">
+                                {item.type === "IMAGE" ? (
+                                    <img src={item.url} alt={item.name} className="object-cover w-full h-full" />
+                                ) : (
+                                    <video src={item.url} controls className="object-cover w-full h-full" />
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+                {mediaCursor && (
+                    <Button variant="ghost" size="sm" onClick={() => fetchMedia(mediaCursor)}>
+                        Xem thêm
+                    </Button>
+                )}
             </div>
         </div>
     );
@@ -243,14 +423,26 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                 <h2 className="text-xl font-semibold">Files</h2>
             </div>
             <ScrollArea className="max-h-[calc(100vh - 120px)]">
-                <ul>
-                    {Array.from({ length: 10 }).map((_, index) => (
-                        <li key={index} className="flex items-center gap-2 py-2 border-b">
-                            <span>File {index + 1}.pdf</span>
-                            <span className="text-xs text-gray-500">(100kb)</span>
-                        </li>
-                    ))}
-                </ul>
+                {loadingFile ? (
+                    <div>Đang tải...</div>
+                ) : (
+                    <ul>
+                        {fileList.length === 0 && <div className="text-center text-gray-500">Không có file</div>}
+                        {fileList.map((item) => (
+                            <li key={item.id} className="flex items-center gap-2 py-2 border-b">
+                                <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                    {item.name}
+                                </a>
+                                <span className="text-xs text-gray-500">({(item.size / 1024).toFixed(1)} KB)</span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+                {fileCursor && (
+                    <Button variant="ghost" size="sm" onClick={() => fetchFiles(fileCursor)}>
+                        Xem thêm
+                    </Button>
+                )}
             </ScrollArea>
         </div>
     );
@@ -324,9 +516,10 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                                     <InviteMemberConversationDialog
                                         open={isInviteMemberOpen}
                                         onClose={() => setIsInviteMemberOpen(false)}
-                                        friends={listFriend} // Danh sách bạn bè từ Redux
-                                        onAddMembers={handleAddMembersToGroup} // Hàm xử lý thêm thành viên
-                                        activeGroup={selectedGroup} // Nhóm hiện tại
+                                        friends={listFriend}
+                                        onAddMembers={handleAddMembersToGroup}
+                                        activeGroup={selectedGroup}
+
                                     />
                                 )}
                             </>
@@ -339,12 +532,63 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                 <Dialog open={isEditGroupNameDialogOpen} onOpenChange={setIsEditGroupNameDialogOpen}>
                     <DialogContent className="sm:max-w-[425px]">
                         <DialogHeader>
-                            <DialogTitle>Chỉnh sửa tên nhóm</DialogTitle>
+                            <DialogTitle>Chỉnh sửa nhóm</DialogTitle>
                             <DialogDescription>
-                                Nhập tên mới cho nhóm.
+                                Đổi tên và ảnh đại diện nhóm.
                             </DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="relative">
+                                    <Avatar
+                                        className="h-24 w-24 cursor-pointer"
+                                        onClick={handleAvatarClick}
+                                    >
+                                        <AvatarImage
+                                            src={
+                                                avatarPreviewUrl ||
+                                                (activeGroup?.avatarUrl
+                                                    ? activeGroup.avatarUrl + `?t=${Date.now()}`
+                                                    : undefined)
+                                            }
+                                            alt={activeGroup?.name}
+                                        />
+                                        <AvatarFallback>
+                                            {activeGroup?.name
+                                                ?.split(" ")
+                                                .map((word: any) => word[0])
+                                                .join("")
+                                                .slice(0, 2)
+                                                .toUpperCase()}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div
+                                        className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+                                        onClick={handleAvatarClick}
+                                    >
+                                        <Upload className="h-6 w-6 text-white" />
+                                    </div>
+                                    <input
+                                        type="file"
+                                        ref={avatarInputRef}
+                                        onChange={handleAvatarFileChange}
+                                        accept="image/*"
+                                        className="hidden"
+                                    />
+                                </div>
+                                {selectedAvatarFile && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                            setSelectedAvatarFile(null);
+                                            setAvatarPreviewUrl(null);
+                                        }}
+                                    >
+                                        Hủy ảnh mới
+                                    </Button>
+                                )}
+                            </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <label htmlFor="name" className="text-right text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                                     Tên nhóm
@@ -355,13 +599,16 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button type="button" variant="secondary" onClick={handleCloseEditGroupNameDialog}>
+                            <Button type="button" variant="secondary" onClick={() => {
+                                setIsEditGroupNameDialogOpen(false);
+                                setSelectedAvatarFile(null);
+                                setAvatarPreviewUrl(null);
+                            }}>
                                 Hủy
                             </Button>
-                            <Button type="button" onClick={() => {
-                                handleSaveGroupName()
-                            }}
-                            >Lưu</Button>
+                            <Button type="button" onClick={handleSaveGroupInfo} disabled={isSaving}>
+                                {isSaving ? "Đang lưu..." : "Lưu"}
+                            </Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
@@ -406,15 +653,6 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                                                             </Avatar>
                                                             <span>{member.name}</span>
                                                         </div>
-                                                        {activeGroup.ownerId === userProfile?.id && member.userId !== userProfile?.id && (
-                                                            <Button
-                                                                variant="destructive"
-                                                                size="icon"
-                                                                onClick={() => handleRemoveMember(member.userId)}
-                                                            >
-                                                                Xóa
-                                                            </Button>
-                                                        )}
                                                     </li>
                                                 ))
                                             ) : (
@@ -488,26 +726,64 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                                 transition={{ duration: 0.2 }}
                                 className="mt-2 space-y-2"
                             >
-                                <Button
-                                    variant="ghost"
-                                    className="w-full justify-start text-red-500"
-                                    onClick={() => {
-                                        if (activeGroup?.id) { // Check if activeGroup and its ID exist
-                                            onLeaveGroup?.(activeGroup.id); // Use optional chaining
-                                        }
-                                    }}
-                                >
-                                    Rời khỏi nhóm
-                                </Button>
-                                <Dialog>
-                                    <DialogTrigger asChild>
+                                {activeGroup?.isGroup && activeGroup.ownerId === userProfile?.id && (
+                                    <>
+                                        <Button
+                                            variant="ghost"
+                                            className="w-full justify-start"
+                                            onClick={() => setIsChangeOwnerDialogOpen(true)}
+                                        >
+                                            Chuyển quyền trưởng nhóm
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            className="w-full justify-start"
+                                            onClick={() => setIsRemoveMemberDialogOpen(true)}
+                                        >
+                                            Xóa thành viên khỏi nhóm
+                                        </Button>
                                         <Button
                                             variant="ghost"
                                             className="w-full justify-start text-red-500"
+                                            onClick={() => setIsRemoveGroupDialogOpen(true)}
                                         >
                                             Xóa nhóm
                                         </Button>
-                                    </DialogTrigger>
+                                    </>
+                                )}
+                                <Button
+                                    variant="ghost"
+                                    className="w-full justify-start text-red-500"
+                                    onClick={() => setIsLeaveGroupDialogOpen(true)}
+                                >
+                                    Rời khỏi nhóm
+                                </Button>
+                                <Dialog open={isLeaveGroupDialogOpen} onOpenChange={setIsLeaveGroupDialogOpen}>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Rời khỏi nhóm</DialogTitle>
+                                            <DialogDescription>
+                                                Bạn có chắc chắn muốn rời khỏi nhóm này không?
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <DialogFooter>
+                                            <Button variant="secondary" onClick={() => setIsLeaveGroupDialogOpen(false)}>
+                                                Hủy
+                                            </Button>
+                                            <Button
+                                                variant="destructive"
+                                                onClick={async () => {
+                                                    if (activeGroup?.id) {
+                                                        await handleLeaveGroup(activeGroup.id);
+                                                    }
+                                                }}
+                                            >
+                                                Rời nhóm
+                                            </Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                                <Dialog open={isRemoveGroupDialogOpen} onOpenChange={setIsRemoveGroupDialogOpen}>
                                     <DialogContent>
                                         <DialogHeader>
                                             <DialogTitle>Xóa nhóm</DialogTitle>
@@ -525,10 +801,9 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                                             <Button
                                                 variant="destructive"
                                                 onClick={() => {
-                                                    if (activeGroup?.id) {  // Check if activeGroup and its ID exist
-                                                        onRemoveGroup?.(activeGroup.id); // Use optional chaining
+                                                    if (activeGroup?.id) {
+                                                        handleDeleteGroup(activeGroup.id);
                                                     }
-                                                    setIsRemoveGroupDialogOpen(false);
                                                 }}
                                             >
                                                 Xóa
@@ -536,6 +811,129 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                                         </DialogFooter>
                                     </DialogContent>
                                 </Dialog>
+                                <Dialog open={isChangeOwnerDialogOpen} onOpenChange={setIsChangeOwnerDialogOpen}>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Chuyển quyền trưởng nhóm</DialogTitle>
+                                            <DialogDescription>
+                                                Chọn thành viên mới làm trưởng nhóm.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <ScrollArea className="h-64 pr-2">
+                                            <div className="flex flex-col gap-2">
+                                                {(activeGroup?.participants ?? [])
+                                                    .filter(m => m.userId !== userProfile?.id)
+                                                    .length === 0 ? (
+                                                    <div className="text-center text-gray-500 py-10 text-sm">
+                                                        Không có thành viên nào để chuyển quyền
+                                                    </div>
+                                                ) : (
+                                                    (activeGroup?.participants ?? [])
+                                                        .filter(m => m.userId !== userProfile?.id)
+                                                        .map(member => (
+                                                            <div
+                                                                key={member.id}
+                                                                className={`flex items-center gap-3 p-2 rounded-md hover:bg-gray-100 transition cursor-pointer ${selectedNewOwnerId === member.userId ? "bg-blue-100" : ""
+                                                                    }`}
+                                                                onClick={() => setSelectedNewOwnerId(member.userId)}
+                                                            >
+                                                                {member.avatarUrl ? (
+                                                                    <img
+                                                                        src={member.avatarUrl}
+                                                                        alt={member.name}
+                                                                        className="w-8 h-8 rounded-full object-cover"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-8 h-8 bg-gray-300 rounded-full" />
+                                                                )}
+                                                                <div className="text-sm font-medium">{member.name}</div>
+                                                                {selectedNewOwnerId === member.userId && (
+                                                                    <span className="ml-auto text-blue-600 font-semibold text-xs"></span>
+                                                                )}
+                                                            </div>
+                                                        ))
+                                                )}
+                                            </div>
+                                        </ScrollArea>
+                                        <DialogFooter>
+                                            <Button variant="secondary" onClick={() => setIsChangeOwnerDialogOpen(false)}>
+                                                Hủy
+                                            </Button>
+                                            <Button
+                                                onClick={async () => {
+                                                    if (activeGroup?.id && selectedNewOwnerId) {
+                                                        await handleChangeOwner(activeGroup.id, selectedNewOwnerId);
+                                                        setIsChangeOwnerDialogOpen(false);
+                                                    }
+                                                }}
+                                                disabled={!selectedNewOwnerId}
+                                            >
+                                                Xác nhận
+                                            </Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                                <Dialog open={isRemoveMemberDialogOpen} onOpenChange={setIsRemoveMemberDialogOpen}>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Xóa thành viên khỏi nhóm</DialogTitle>
+                                            <DialogDescription>
+                                                Chọn thành viên muốn xóa khỏi nhóm.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <ScrollArea className="h-64 pr-2">
+                                            <div className="flex flex-col gap-2">
+                                                {(activeGroup?.participants ?? [])
+                                                    .filter(m => m.userId !== userProfile?.id)
+                                                    .length === 0 ? (
+                                                    <div className="text-center text-gray-500 py-10 text-sm">
+                                                        Không có thành viên nào để xóa
+                                                    </div>
+                                                ) : (
+                                                    (activeGroup?.participants ?? [])
+                                                        .filter(m => m.userId !== userProfile?.id)
+                                                        .map(member => (
+                                                            <div
+                                                                key={member.id}
+                                                                className={`flex items-center gap-3 p-2 rounded-md hover:bg-gray-100 transition cursor-pointer ${selectedRemoveMemberId === member.userId ? "bg-red-100" : ""}`}
+                                                                onClick={() => setSelectedRemoveMemberId(member.userId)}
+                                                            >
+                                                                {member.avatarUrl ? (
+                                                                    <img
+                                                                        src={member.avatarUrl}
+                                                                        alt={member.name}
+                                                                        className="w-8 h-8 rounded-full object-cover"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-8 h-8 bg-gray-300 rounded-full" />
+                                                                )}
+                                                                <div className="text-sm font-medium">{member.name}</div>
+                                                            </div>
+                                                        ))
+                                                )}
+                                            </div>
+                                        </ScrollArea>
+                                        <DialogFooter>
+                                            <Button variant="secondary" onClick={() => setIsRemoveMemberDialogOpen(false)}>
+                                                Hủy
+                                            </Button>
+                                            <Button
+                                                variant="destructive"
+                                                onClick={async () => {
+                                                    if (selectedRemoveMemberId && activeGroup?.id) {
+                                                        await handleRemoveMember(selectedRemoveMemberId);
+                                                        setIsRemoveMemberDialogOpen(false);
+                                                        setSelectedRemoveMemberId(null);
+                                                    }
+                                                }}
+                                                disabled={!selectedRemoveMemberId}
+                                            >
+                                                Xóa
+                                            </Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+
                             </motion.div>
                         )}
                     </AnimatePresence>
