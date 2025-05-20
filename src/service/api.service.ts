@@ -60,8 +60,8 @@ class ApiServiceImpl implements ApiService {
     }
   }
 
-  async get<T>(uri: string): Promise<T> {
-    return this.request<T>("GET", uri);
+  async get<T>(uri: string, data?: any): Promise<T> {
+    return this.request<T>("GET", uri, data);
   }
 
   async post<T>(uri: string, data?: any): Promise<T> {
@@ -72,8 +72,8 @@ class ApiServiceImpl implements ApiService {
     return this.request<T>("PUT", uri, data);
   }
 
-  async delete<T>(uri: string): Promise<T> {
-    return this.request<T>("DELETE", uri);
+  async delete<T>(uri: string, data?: any): Promise<T> {
+    return this.request<T>("DELETE", uri, data);
   }
 }
 

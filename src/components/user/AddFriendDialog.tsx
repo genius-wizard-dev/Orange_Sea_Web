@@ -80,11 +80,6 @@ const AddFriendDialog: React.FC<FriendDialogProps> = ({ isOpen, onOpenChange }) 
 
 	const handleSearch = async () => {
 		if (!searchQuery.trim()) return;
-		if (searchQuery.trim() === profile?.username) {
-			toast.error("Bạn không thể tìm kiếm chính mình");
-			return;
-		}
-
 		setIsLoading(true);
 		try {
 			const result: any = await apiService.get(ENDPOINTS.FRIEND.SEARCH_NEW_FRIEND(searchQuery.trim()));

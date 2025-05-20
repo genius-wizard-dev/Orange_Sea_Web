@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RootState } from "@/redux/slices";
 import { openUserModal } from "@/redux/slices/userModal";
 import { AppDispatch } from "@/redux/store";
-import { getFriend, getReceived, getRequested } from "@/redux/thunks/friend";
+import { acceptFriendRequest, cancelFriendRequest, getFriend, getReceived, getRequested, rejectFriendRequest } from "@/redux/thunks/friend";
 import { fetchGroupList } from "@/redux/thunks/group";
 import { fetchUserProfile } from "@/redux/thunks/userModal";
 import { ENDPOINTS } from "@/service/api.endpoint";
@@ -257,22 +257,17 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
 
   const handleRemoveFriendShip = (friendShipId: string) => {
     setPendingFriendShip(friendShipId);
-    apiService
-      .put(ENDPOINTS.FRIEND.REMOVE_FRIEND(friendShipId))
-      .then(async (response: any) => {
-        if (response.statusCode === 200) {
-          toast.success("Đã hủy kết bạn");
-          await fetchFriendData();
-          await dispatch(fetchGroupList() as any);
-        }
-      })
-      .catch((error) => {
-        console.error("Error removing friend:", error);
-        toast.error(error.message || "Không thể hủy kết bạn");
-      })
-      .finally(() => {
-        setPendingFriendShip(null);
-      });
+    try {
+      dispatch(cancelFriendRequest(friendShipId) as any)
+        .unwrap()
+      toast.success("Đã hủy kết bạn");
+      fetchFriendData();
+    } catch (error) {
+      console.error("Error removing friend:", error);
+      toast.error("Không thể hủy kết bạn");
+    } finally {
+      setPendingFriendShip(null);
+    }
   };
 
   // const handleSendFriendRequest = (userId: string) => {
@@ -305,45 +300,35 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
 
   const handleAcceptRequest = (requestId: string) => {
     setPendingRequestAction(requestId);
-    apiService
-      .put(ENDPOINTS.FRIEND.HANDLE_REQUEST(requestId), {
-        action: "ACCEPT",
-      })
-      .then(async (response: any) => {
-        if (response.statusCode === 200) {
-          await fetchFriendData();
-          toast.success("Đã chấp nhận lời mời kết bạn");
-          await dispatch(fetchGroupList() as any);
-        }
-      })
-      .catch((error) => {
-        console.error("Error accepting friend request:", error);
-        toast.error("Không thể chấp nhận lời mời kết bạn");
-      })
-      .finally(() => {
-        setPendingRequestAction(null);
-      });
+    try {
+      dispatch(acceptFriendRequest(requestId) as any)
+        .unwrap()
+      toast.success("Đã xác nhận lời mời kết bạn");
+      fetchFriendData();
+      dispatch(fetchGroupList() as any);
+
+    } catch (error) {
+      console.error("Error accepting friend request:", error);
+      toast.error("Không thể xác nhận lời mời kết bạn");
+    } finally {
+      setPendingRequestAction(null);
+    }
   };
 
   const handleRejectRequest = (requestId: string) => {
     setPendingRequestAction(requestId);
-    apiService
-      .put(ENDPOINTS.FRIEND.HANDLE_REQUEST(requestId), {
-        action: "REJECT",
-      })
-      .then(async (response: any) => {
-        if (response.statusCode === 200) {
-          await fetchFriendData();
-          toast.success("Đã từ chối lời mời kết bạn");
-        }
-      })
-      .catch((error) => {
-        console.error("Error rejecting friend request:", error);
-        toast.error("Không thể từ chối lời mời kết bạn");
-      })
-      .finally(() => {
-        setPendingRequestAction(null);
-      });
+    try {
+      dispatch(rejectFriendRequest(requestId) as any)
+        .unwrap();
+      toast.success("Đã từ chối lời mời kết bạn");
+      fetchFriendData();
+    } catch (error) {
+      console.error("Error rejecting friend request:", error);
+      toast.error("Không thể từ chối lời mời kết bạn");
+ 
+    } finally {
+      setPendingRequestAction(null);
+    }
   };
 
   const handleProfileOpen = (id: string) => {
@@ -413,14 +398,29 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
               <TabsTrigger value="friends">
                 <Users className="w-4 h-4 mr-1" />
                 Bạn bè
+                {friend.length > 0 && (
+                  <span className="absolute top-0 right-0 flex items-center justify-center w-4 h-4 text-xs font-semibold bg-gray-200 rounded-full">
+                    {friend.length}
+                  </span>
+                )}
               </TabsTrigger>
               <TabsTrigger value="requests">
                 <UserPlus className="w-4 h-4 mr-1" />
                 Lời mời kết bạn
+                {received.length > 0 && (
+                  <span className="absolute top-0 right-0 flex items-center justify-center w-4 h-4 text-xs font-semibold text-white bg-red-500 rounded-full">
+                    {received.length}
+                  </span>
+                )}
               </TabsTrigger>
               <TabsTrigger value="sent">
                 <Clock className="w-4 h-4 mr-1" />
                 Đã gửi
+                {requested.length > 0 && (
+                  <span className="absolute top-0 right-0 flex items-center justify-center w-4 h-4 text-xs font-semibold text-white bg-red-500 rounded-full">
+                    {requested.length}
+                  </span>
+                )}
               </TabsTrigger>
             </TabsList>
 

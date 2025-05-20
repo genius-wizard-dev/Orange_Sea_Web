@@ -36,6 +36,7 @@ import { getDeviceId } from "@/utils/fingerprint";
 import { m } from "framer-motion";
 import { fetchGroupList } from "@/redux/thunks/group";
 import { Upload } from "lucide-react";
+import { getFriend, getReceived, getRequested } from "@/redux/thunks/friend";
 
 
 const Page: React.FC = () => {
@@ -159,6 +160,7 @@ const Page: React.FC = () => {
 			});
 
 		});
+		
 
 		// Lắng nghe sự kiện server gửi về
 		socket.on("unReadMessages", (data) => {
@@ -318,6 +320,11 @@ const Page: React.FC = () => {
 			}
 		});
 
+		socket.on("handleMemberGroup", (data) => {
+			dispatch(fetchGroupList() as any);
+			
+		});
+
 		socket.on("memberCloseGroup", (data) => {
 			const { profileId } = data;
 			console.log("🚀 Thành viên đóng nhóm:", data);
@@ -336,6 +343,27 @@ const Page: React.FC = () => {
 			// // 	dispatch(setActiveGroup(groupId));
 			// // }
 			// dispatch(setGroups(group));
+		});
+
+		socket.on("handleFriend", (data) => {
+			// const { friendId, action } = data;
+			console.log("🚀 Cập nhật bạn bè:", data);
+			dispatch(getFriend() as any);
+			dispatch(getReceived() as any);
+			dispatch(getRequested() as any);
+
+			dispatch(fetchGroupList() as any);
+
+			toast.info("Có trạng thái bạn bè mới");
+
+		});
+
+		socket.on('friendShip', (data) => {
+			// data: {S
+			//   receivedRequests: [...], // Yêu cầu kết bạn nhận được
+			//   sendingRequests: [...] // Yêu cầu kết bạn đã gửi
+			// }
+			console.log("🚀 Cập nhật yêu cầu kết bạn:", data);
 		});
 
 	}, [])

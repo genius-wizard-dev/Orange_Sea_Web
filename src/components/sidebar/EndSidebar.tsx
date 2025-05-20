@@ -224,7 +224,10 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
         try {
             // If your API expects participantIds as a query param, append it to the URL:
             const response: any = await apiService.delete(
-                ENDPOINTS.GROUP.REMOVE_MEMBER(activeGroup.id) + `?participantIds=${encodeURIComponent(userId)}`
+                ENDPOINTS.GROUP.REMOVE_MEMBER(activeGroup.id),
+                {
+                    participantIds: [userId], // Đúng tên trường backend yêu cầu
+                }
             );
 
             if (response.statusCode === 200) {
@@ -300,7 +303,12 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
         try {
             // Không truyền type
             const res: any = await apiService.get(
-                ENDPOINTS.CHAT.MEDIA_LIST(activeGroup.id)
+                ENDPOINTS.CHAT.MEDIA_LIST(activeGroup.id),
+                {
+                    type: "IMAGE",
+                    cursor: cursor || undefined,
+                    limit: 10,
+                }
             );
             // Nếu backend trả về cả IMAGE, VIDEO, FILE, bạn có thể filter ở FE:
             const data = Array.isArray(res.data)
@@ -319,7 +327,12 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
         try {
             // Không truyền type
             const res: any = await apiService.get(
-                ENDPOINTS.CHAT.MEDIA_LIST(activeGroup.id)
+                ENDPOINTS.CHAT.MEDIA_LIST(activeGroup.id),
+                {
+                    type: "IMAGE",
+                    cursor: cursor || undefined,
+                    limit: 10,
+                }
             );
             // Filter lấy file
             const data = Array.isArray(res.data)

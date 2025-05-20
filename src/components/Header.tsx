@@ -44,6 +44,7 @@ const TopNavigation: React.FC = () => {
   const { profile: userProfile } = useSelector(
     (state: RootState) => state.profile
   );
+  const { received : listFriend } = useSelector((state: RootState) => state.friend);
   const isLoggedIn = !!getAccessToken();
   const router = useRouter();
   const handleProfileClick = () => {
@@ -114,9 +115,7 @@ const TopNavigation: React.FC = () => {
           </a>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" className="text-gray-800 hover:bg-gray-100">
-            NEED HELP
-          </Button>
+          
           {isLoggedIn ? (
             <>
               <Button
@@ -126,6 +125,11 @@ const TopNavigation: React.FC = () => {
                 className="relative"
               >
                 <Users className="text-gray-800" />
+                {listFriend?.length > 0 && (
+                  <span className="absolute top-0 right-0 flex items-center justify-center w-4 h-4 text-xs font-semibold text-white bg-red-500 rounded-full">
+                    {listFriend.length}
+                  </span>
+                )}
               </Button>
               {/* <Button variant="ghost" size="icon">
                 <Bell className="text-gray-800" />
