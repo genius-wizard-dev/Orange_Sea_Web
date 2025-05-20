@@ -103,7 +103,7 @@ const chatSlice = createSlice({
 					if (msg && msg.readBy && !msg.readBy.includes(profileId)) {
 						msg.readBy.push(profileId);
 						console.log("Marking message as read:", msg);
-						
+
 					}
 				});
 			}
@@ -181,10 +181,7 @@ const chatSlice = createSlice({
 		) => {
 			const { groupId, messages, nextCursor, hasMore } = action.payload;
 
-			// Add messages to the group if they don't exist
-			if (!state.messagesByGroup[groupId]) {
-				state.messagesByGroup[groupId] = messages;
-			}
+			state.messagesByGroup[groupId] = messages;
 			// Set the cursor and whether there are more messages to load
 
 			state.cursorsByGroup[groupId] = nextCursor;
