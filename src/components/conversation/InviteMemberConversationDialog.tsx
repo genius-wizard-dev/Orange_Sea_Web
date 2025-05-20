@@ -7,6 +7,7 @@ import { useState, useMemo } from "react";
 import { Friend } from "@/types/friend";
 import { Search } from "lucide-react";
 import { Group } from "@/types/group";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 type InviteMemberConversationDialogProps = {
     open: boolean;
@@ -81,21 +82,29 @@ export const InviteMemberConversationDialog: React.FC<InviteMemberConversationDi
                             filteredFriends.map((friend) => (
                                 <div
                                     key={friend.profileId}
-                                    className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-100 transition"
+                                    className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-100 transition cursor-pointer"
+                                    onClick={() => toggleSelect(friend.profileId)}
                                 >
                                     <Checkbox
                                         checked={selectedFriendIds.includes(friend.profileId)}
                                         onCheckedChange={() => toggleSelect(friend.profileId)}
                                     />
-                                    {friend.avatar ? (
-                                        <img
-                                            src={friend.avatar}
-                                            alt={friend.name}
-                                            className="w-8 h-8 rounded-full object-cover"
+                                    <Avatar className="w-10 h-10 rounded-full overflow-hidden">
+                                        <AvatarImage
+                                            src={friend.avatar ?? ""}
+                                            alt="Avatar"
+                                            className="object-cover"
                                         />
-                                    ) : (
-                                        <div className="w-8 h-8 bg-gray-300 rounded-full" />
-                                    )}
+                                        <AvatarFallback className="">
+                                            {
+                                                friend.name.split(" ")
+                                                    .map((word: any) => word[0])
+                                                    .join("")
+                                                    .slice(0, 2)
+                                                    .toUpperCase()
+                                            }
+                                        </AvatarFallback>
+                                    </Avatar>
                                     <div className="text-sm font-medium">{friend.name}</div>
                                 </div>
                             ))

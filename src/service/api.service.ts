@@ -10,14 +10,14 @@ import {
 // Get the preconfigured axios instance
 const axiosInstance = ApiClient.getInstance();
 
-class ApiServiceImpl implements ApiService {
-  private async request<T>(
+class ApiServiceImpl implements ApiService {  private async request<T>(
     method: string,
     uri: string,
-    data?: any
+    data?: any,
+    params?: any
   ): Promise<T> {
     try {
-      console.log(`📤 Making ${method} request to ${uri}`, { data });
+      console.log(`📤 Making ${method} request to ${uri}`, { data, params });
 
       // Skip device ID and FCM token on server-side
       let headers: Record<string, string> = {};
@@ -50,6 +50,7 @@ class ApiServiceImpl implements ApiService {
         method,
         url: uri,
         data,
+        params,
         headers,
       });
 
@@ -59,11 +60,10 @@ class ApiServiceImpl implements ApiService {
       throw error;
     }
   }
-
-  async get<T>(uri: string, data?: any): Promise<T> {
-    return this.request<T>("GET", uri, data);
+  async get<T>(uri: string, params?: any): Promise<T> {
+    // For GET requests, params should be sent as query parameters
+    return this.request<T>("GET", uri, undefined, params);
   }
-
   async post<T>(uri: string, data?: any): Promise<T> {
     return this.request<T>("POST", uri, data);
   }

@@ -19,9 +19,11 @@ import { RootState } from '@/redux/slices';
 import { addMember, removeMember, updateGroupInfo } from '@/redux/slices/group';
 import { ENDPOINTS } from '@/service/api.endpoint';
 import apiService from "@/service/api.service";
-import { ArrowLeft, Bell, ChevronDown, Pencil, Search, UserPlus } from 'lucide-react';
+import { ArrowLeft, Bell, ChevronDown, Pencil, Search, UserPlus, Play } from 'lucide-react';
 import { Friend } from '@/types/friend';
 import { InviteMemberConversationDialog } from '../conversation/InviteMemberConversationDialog';
+import { MediaViewerDialog } from '../conversation/MediaViewerDialog';
+import { MessageType } from '@/types/message';
 import { Profile } from '@/types/profile';
 import { Group } from '@/types/group';
 import { toast } from 'sonner';
@@ -53,6 +55,7 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
     userProfile,
 }) => {
     const [viewAll, setViewAll] = useState<null | 'media' | 'files'>(null);
+    const [activeTab, setActiveTab] = useState<'images' | 'videos'>('images');
     const [isEditGroupNameDialogOpen, setIsEditGroupNameDialogOpen] = useState(false);
     const [newGroupName, setNewGroupName] = useState(activeGroup?.name || "");
     const [isRemoveGroupDialogOpen, setIsRemoveGroupDialogOpen] = useState(false);
@@ -68,15 +71,25 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
     const [selectedNewOwnerId, setSelectedNewOwnerId] = useState<string | null>(null);
 
     const [isRemoveMemberDialogOpen, setIsRemoveMemberDialogOpen] = useState(false);
-    const [selectedRemoveMemberId, setSelectedRemoveMemberId] = useState<string | null>(null);
+    const [selectedRemoveMemberId, setSelectedRemoveMemberId] = useState<string | null>(null); const [isLeaveGroupDialogOpen, setIsLeaveGroupDialogOpen] = useState(false);
 
-    const [isLeaveGroupDialogOpen, setIsLeaveGroupDialogOpen] = useState(false);
+    // Images state
+    const [imageList, setImageList] = useState<any[]>([]);
+    const [imageCursor, setImageCursor] = useState<string | null>(null);
+    const [loadingImage, setLoadingImage] = useState(false);
+    const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
+    const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
-    const [mediaList, setMediaList] = useState<any[]>([]);
+    // Videos state
+    const [videoList, setVideoList] = useState<any[]>([]);
+    const [videoCursor, setVideoCursor] = useState<string | null>(null);
+    const [loadingVideo, setLoadingVideo] = useState(false);
+    const [isVideoViewerOpen, setIsVideoViewerOpen] = useState(false);
+    const [selectedVideoIndex, setSelectedVideoIndex] = useState(0);
+
+    // Files state
     const [fileList, setFileList] = useState<any[]>([]);
-    const [mediaCursor, setMediaCursor] = useState<string | null>(null);
     const [fileCursor, setFileCursor] = useState<string | null>(null);
-    const [loadingMedia, setLoadingMedia] = useState(false);
     const [loadingFile, setLoadingFile] = useState(false);
 
     const { friend: listFriend } = useSelector((state: RootState) => state.friend);
@@ -296,38 +309,55 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
             toast.error("Có lỗi xảy ra khi rời nhóm.");
         }
     };
-
-    const fetchMedia = async (cursor?: string) => {
+    const fetchImage = async (cursor?: string) => {
         if (!activeGroup?.id) return;
-        setLoadingMedia(true);
+        setLoadingImage(true);
         try {
-            // Không truyền type
             const res: any = await apiService.get(
                 ENDPOINTS.CHAT.MEDIA_LIST(activeGroup.id),
                 {
-                    type: "IMAGE",
+                    type: "IMAGE", // Only fetch images
                     cursor: cursor || undefined,
                     limit: 10,
                 }
             );
-            // Nếu backend trả về cả IMAGE, VIDEO, FILE, bạn có thể filter ở FE:
+
             if (res.statusCode !== 200) {
-                toast.error(res.message || "Lỗi khi tải media");
+                toast.error(res.message || "Lỗi khi tải hình ảnh");
                 return;
             } else {
-                // toast.success("Tải media thành công");
-
-                console.log("res", res);
-
                 const data = res.data.media || [];
-
-                setMediaList(cursor ? [...mediaList, ...data] : data);
-                setMediaCursor(res.cursor || null);
-
+                setImageList(cursor ? [...imageList, ...data] : data);
+                setImageCursor(res.data.cursor || null);
             }
         } finally {
-            setLoadingMedia(false);
-            console.log("mediaList", mediaList);
+            setLoadingImage(false);
+        }
+    };
+
+    const fetchVideo = async (cursor?: string) => {
+        if (!activeGroup?.id) return;
+        setLoadingVideo(true);
+        try {
+            const res: any = await apiService.get(
+                ENDPOINTS.CHAT.MEDIA_LIST(activeGroup.id),
+                {
+                    type: "VIDEO", // Only fetch videos
+                    cursor: cursor || undefined,
+                    limit: 10,
+                }
+            );
+
+            if (res.statusCode !== 200) {
+                toast.error(res.message || "Lỗi khi tải video");
+                return;
+            } else {
+                const data = res.data.media || [];
+                setVideoList(cursor ? [...videoList, ...data] : data);
+                setVideoCursor(res.data.cursor || null);
+            }
+        } finally {
+            setLoadingVideo(false);
         }
     };
 
@@ -335,27 +365,31 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
         if (!activeGroup?.id) return;
         setLoadingFile(true);
         try {
-            // Không truyền type
             const res: any = await apiService.get(
                 ENDPOINTS.CHAT.MEDIA_LIST(activeGroup.id),
                 {
-                    type: "IMAGE",
+                    type: "RAW",
                     cursor: cursor || undefined,
                     limit: 10,
                 }
             );
-            // Filter lấy file
-            const data = Array.isArray(res.data)
-                ? res.data.filter((item: any) => item.type === "FILE")
-                : [];
-            setFileList(cursor ? [...fileList, ...data] : data);
-            setFileCursor(res.cursor || null);
+            if (res.statusCode !== 200) {
+                toast.error(res.message || "Lỗi khi tải file");
+                return;
+            } else {
+                const data = res.data.media || [];
+                setFileList(cursor ? [...fileList, ...data] : data);
+                setFileCursor(res.data.cursor || null);
+            }
         } finally {
             setLoadingFile(false);
         }
     };
     useEffect(() => {
-        if (viewAll === 'media') fetchMedia();
+        if (viewAll === 'media') {
+            fetchImage();
+            fetchVideo();
+        }
         if (viewAll === 'files') fetchFiles();
         // eslint-disable-next-line
     }, [viewAll, activeGroup?.id]);
@@ -382,47 +416,7 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
 
     const toggleGroupOptions = () => {
         setShowGroupOptions(!showGroupOptions);
-    };
-
-    // Tách phần hiển thị Media và Files ra thành các component riêng
-    const MediaView = () => (
-        <div className={cn(
-            "w-1/4 h-full p-4 overflow-y-auto overflow-x-hidden border-s backdrop-filter backdrop-blur-sm bg-white/30 z-30",
-            className,
-            "overflow-x-hidden",
-            "fixed top-0 right-0 w-screen",
-            "lg:top-0 lg:right-0 lg:w-[400px]",
-            "xl:relative xl:w-[400px]",
-            "transition-all duration-300 ease-in-out",
-            hidden ? "hidden" : "visible",
-        )}>
-            <div className="mb-4">
-                <Button variant="ghost" size="sm" onClick={handleBackClick}>
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                </Button>
-                <h2 className="text-xl font-semibold">Media</h2>
-            </div>
-            <div className="overflow-auto">
-                {loadingMedia ? (
-                    <div>Đang tải...</div>
-                ) : (
-                    <div className="grid grid-cols-3 gap-2">
-                        {mediaList.length === 0 && <div className="col-span-3 text-center text-gray-500">Không có media</div>}
-                        {mediaList.map((item) => (
-                            <div key={item.id} className="w-full h-24 bg-gray-200 rounded flex items-center justify-center overflow-hidden">
-                                <img src={item.fileUrl} alt={item.fileName} className="object-cover w-full h-full" />
-                            </div>
-                        ))}
-                    </div>
-                )}
-                {mediaCursor && (
-                    <Button variant="ghost" size="sm" onClick={() => fetchMedia(mediaCursor)}>
-                        Xem thêm
-                    </Button>
-                )}
-            </div>
-        </div>
-    );
+    };    
 
     const FilesView = () => (
         <div className={cn(
@@ -435,28 +429,73 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
             "transition-all duration-300 ease-in-out",
             hidden ? "hidden" : "visible",
         )}>
-            <div className="mb-4">
+            <div className="mb-4 flex">
                 <Button variant="ghost" size="sm" onClick={handleBackClick}>
-                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    <ArrowLeft className="w-4 h-4" />
                 </Button>
-                <h2 className="text-xl font-semibold">Files</h2>
+                <h2 className="ml-2 text-xl font-semibold">Files</h2>
             </div>
             <ScrollArea className="max-h-[calc(100vh - 120px)]">
                 {loadingFile ? (
                     <div>Đang tải...</div>
                 ) : (
-                    <ul>
-                        {fileList.length === 0 && <div className="text-center text-gray-500">Không có file</div>}
+                    <div className="space-y-3">
+                        {fileList.length === 0 && (<div className="text-center py-8 text-gray-500">Không có file nào</div>)}
+
                         {fileList.map((item) => (
-                            <li key={item.id} className="flex items-center gap-2 py-2 border-b">
-                                <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                                    {item.name}
-                                </a>
-                                <span className="text-xs text-gray-500">({(item.size / 1024).toFixed(1)} KB)</span>
-                            </li>
+                            <div key={item.id} className="flex flex-col bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors border border-gray-300">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                                        <Avatar className="w-full h-full">
+                                            <AvatarImage src={item.sender?.avatar} alt={item.sender?.name || "User"} />
+                                            <AvatarFallback>{(item.sender?.name || "U")[0]}</AvatarFallback>
+                                        </Avatar>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate">{item.sender?.name || "User"}</p>
+                                        <p className="text-xs text-gray-500">
+                                            {new Date(item.createdAt).toLocaleDateString()} · {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-between border border-gray-200 rounded-md p-2 bg-white">
+                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                        <div className="p-2 bg-blue-100 rounded-md flex-shrink-0">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                                <polyline points="14 2 14 8 20 8"></polyline>
+                                            </svg>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-sm truncate" title={item.fileName}>
+                                                {item.fileName}
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                                {(item.fileSize / 1024 < 1024)
+                                                    ? `${(item.fileSize / 1024).toFixed(1)} KB`
+                                                    : `${(item.fileSize / 1024 / 1024).toFixed(1)} MB`}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <a
+                                        href={item.fileUrl}
+                                        download={item.fileName}
+                                        className="p-2 rounded-full hover:bg-gray-100 flex-shrink-0 transition-colors"
+                                        title="Tải xuống"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                            <polyline points="7 10 12 15 17 10"></polyline>
+                                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
                         ))}
-                    </ul>
+                    </div>
                 )}
+
                 {fileCursor && (
                     <Button variant="ghost" size="sm" onClick={() => fetchFiles(fileCursor)}>
                         Xem thêm
@@ -464,11 +503,128 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                 )}
             </ScrollArea>
         </div>
-    );
-
-    // Render MediaView hoặc FileView khi cần
+    );    // Render ImageView, VideoView, hoặc FileView khi cần
     if (viewAll === 'media') {
-        return <MediaView />;
+        // Create a tabbed interface for Image and Video views
+        return (
+            <div className={cn(
+                "w-1/4 h-full p-4 overflow-y-auto overflow-x-hidden border-s backdrop-filter backdrop-blur-sm bg-white/30 z-30",
+                className,
+                "overflow-x-hidden",
+                "fixed top-0 right-0 w-screen",
+                "lg:top-0 lg:right-0 lg:w-[400px]",
+                "xl:relative xl:w-[400px]",
+                "transition-all duration-300 ease-in-out",
+                hidden ? "hidden" : "visible",
+            )}>
+                <div className="mb-4 flex">
+                    <Button variant="ghost" size="sm" onClick={handleBackClick}>
+                        <ArrowLeft className="w-4 h-4" />
+                    </Button>
+                    <h2 className="ml-2 text-xl font-semibold">Media</h2>
+                </div>
+                <div className="flex space-x-2 mb-4 border-b">
+                    <button
+                        className={`pb-2 px-4 font-medium ${activeTab === 'images' ? 'border-b-2 border-orange-500 text-orange-600' : 'text-gray-600'}`}
+                        onClick={() => setActiveTab('images')}
+                    >
+                        Hình ảnh
+                    </button>
+                    <button
+                        className={`pb-2 px-4 font-medium ${activeTab === 'videos' ? 'border-b-2 border-orange-500 text-orange-600' : 'text-gray-600'}`}
+                        onClick={() => setActiveTab('videos')}
+                    >
+                        Video
+                    </button>
+                </div>
+
+                {activeTab === 'images' && (
+                    <div className="overflow-auto">
+                        {loadingImage ? (
+                            <div>Đang tải...</div>
+                        ) : (
+                            <div className="grid grid-cols-3 gap-2">
+                                {imageList.length === 0 && <div className="col-span-3 text-center text-gray-500">Không có hình ảnh</div>}
+                                {imageList.map((item, index) => (
+                                    <div
+                                        key={item.id}
+                                        className="w-full h-24 bg-gray-200 rounded flex items-center justify-center overflow-hidden cursor-pointer relative group"
+                                        onClick={() => {
+                                            setSelectedImageIndex(index);
+                                            setIsImageViewerOpen(true);
+                                        }}
+                                    >
+                                        <img src={item.fileUrl} alt={item.fileName || `Hình ảnh ${index + 1}`} className="object-cover w-full h-full" />
+                                        <div className="absolute bottom-0 left-0 right-0 p-1 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity text-xs text-white truncate">
+                                            {item.fileName || `Hình ảnh ${index + 1}`}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {imageCursor && (
+                            <Button variant="ghost" size="sm" onClick={() => fetchImage(imageCursor)}>
+                                Xem thêm
+                            </Button>
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'videos' && (
+                    <div className="overflow-auto">
+                        {loadingVideo ? (
+                            <div>Đang tải...</div>
+                        ) : (
+                            <div className="grid grid-cols-3 gap-2">
+                                {videoList.length === 0 && <div className="col-span-3 text-center text-gray-500">Không có video</div>}
+                                {videoList.map((item, index) => (
+                                    <div
+                                        key={item.id}
+                                        className="w-full h-24 bg-gray-200 rounded flex items-center justify-center overflow-hidden cursor-pointer relative group"
+                                        onClick={() => {
+                                            setSelectedVideoIndex(index);
+                                            setIsVideoViewerOpen(true);
+                                        }}
+                                    >
+                                        <img src={item.fileUrl} alt={item.fileName || `Video ${index + 1}`} className="object-cover w-full h-full" />
+                                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-80 group-hover:opacity-100">
+                                            <Play className="h-8 w-8 text-white" />
+                                        </div>
+                                        <div className="absolute bottom-0 left-0 right-0 p-1 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity text-xs text-white truncate">
+                                            {item.fileName || `Video ${index + 1}`}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {videoCursor && (
+                            <Button variant="ghost" size="sm" onClick={() => fetchVideo(videoCursor)}>
+                                Xem thêm
+                            </Button>
+                        )}
+                    </div>
+                )}
+
+                {/* Media Viewer Dialogs */}
+                <MediaViewerDialog
+                    isOpen={isImageViewerOpen}
+                    onClose={() => setIsImageViewerOpen(false)}
+                    mediaType={MessageType.IMAGE}
+                    mediaUrl={null}
+                    mediaUrls={imageList.map(item => item.fileUrl)}
+                    startIndex={selectedImageIndex}
+                />
+
+                <MediaViewerDialog
+                    isOpen={isVideoViewerOpen}
+                    onClose={() => setIsVideoViewerOpen(false)}
+                    mediaType={MessageType.VIDEO}
+                    mediaUrl={null}
+                    mediaUrls={videoList.map(item => item.fileUrl)}
+                    startIndex={selectedVideoIndex}
+                />
+            </div>
+        );
     }
     if (viewAll === 'files') {
         return <FilesView />;
@@ -488,11 +644,15 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
             <Button variant="outline" className="mb-4" onClick={onClose}>X</Button>
             <div className="flex flex-col gap-4">
                 {/* Header thông tin nhóm */}
-                <div className="flex flex-col items-center mb-4">
-                    <div className="w-24 h-24 rounded-full overflow-hidden shadow-md mb-2">
+                <div className="flex flex-col items-center mb-6">
+                    <div className="w-28 h-28 rounded-full overflow-hidden shadow-lg mb-4 border-2 border-orange-200 p-1 bg-gradient-to-br from-orange-50 to-orange-100">
                         <Avatar className="w-full h-full rounded-full overflow-hidden">
-                            <AvatarImage src={activeGroup?.isGroup ? activeGroup.avatarUrl : activeGroup?.participants?.[0].avatarUrl} alt="Avatar" />
-                            <AvatarFallback>
+                            <AvatarImage 
+                                src={activeGroup?.isGroup ? activeGroup.avatarUrl : activeGroup?.participants?.[0].avatarUrl} 
+                                alt="Avatar" 
+                                className="object-cover"
+                            />
+                            <AvatarFallback className="">
                                 {activeGroup?.name
                                     ?.split(" ")
                                     .map((word: any) => word[0])
@@ -502,48 +662,43 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                             </AvatarFallback>
                         </Avatar>
                     </div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <h2 className="text-xl font-semibold">
+                    
+                    <div className="flex items-center gap-2 mb-3 relative">
+                        <h2 className="text-xl font-semibold text-center">
                             <span className="font-semibold">{activeGroup?.isGroup ? activeGroup.name : activeGroup?.participants?.[0].name}</span>
                         </h2>
                         {activeGroup?.isGroup === true && activeGroup?.ownerId === userProfile?.id && (
                             <button
-                                className="p-1 rounded-full hover:bg-gray-100"
+                                className="p-1.5 rounded-full hover:bg-orange-100 transition-colors text-orange-600"
                                 onClick={handleOpenEditGroupNameDialog}
                             >
                                 <Pencil className="w-4 h-4" />
                             </button>
                         )}
                     </div>
-                    <div className="flex gap-2">
-                        <button className="p-2 rounded-full hover:bg-gray-100">
-                            <Bell className="w-5 h-5" />
-                        </button>
-                        <button className="p-2 rounded-full hover:bg-gray-100">
-                            <Search className="w-5 h-5" />
-                        </button>
-
+                    
+                    <div className="flex gap-3 mt-1">
                         {activeGroup?.isGroup === true && (
-                            <>
-                                <button
-                                    className="p-2 rounded-full hover:bg-gray-100"
-                                    onClick={() => handleOpenInviteMemberDialog(activeGroup!)} // Truyền nhóm hiện tại
-                                >
-                                    <UserPlus className="w-5 h-5" />
-                                </button>
-                                {selectedGroup && (
-                                    <InviteMemberConversationDialog
-                                        open={isInviteMemberOpen}
-                                        onClose={() => setIsInviteMemberOpen(false)}
-                                        friends={listFriend}
-                                        onAddMembers={handleAddMembersToGroup}
-                                        activeGroup={selectedGroup}
-
-                                    />
-                                )}
-                            </>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="flex items-center gap-2 bg-orange-50 hover:bg-orange-100 text-orange-600 border-orange-200 hover:border-orange-300 transition-all rounded-xl"
+                                onClick={() => handleOpenInviteMemberDialog(activeGroup!)}
+                            >
+                                <UserPlus className="w-4 h-4" />
+                                <span>Thêm thành viên</span>
+                            </Button>
                         )}
-
+                        
+                        {selectedGroup && (
+                            <InviteMemberConversationDialog
+                                open={isInviteMemberOpen}
+                                onClose={() => setIsInviteMemberOpen(false)}
+                                friends={listFriend}
+                                onAddMembers={handleAddMembersToGroup}
+                                activeGroup={selectedGroup}
+                            />
+                        )}
                     </div>
                 </div>
 
