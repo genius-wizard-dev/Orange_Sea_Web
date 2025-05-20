@@ -322,7 +322,7 @@ const Page: React.FC = () => {
 
 		socket.on("handleMemberGroup", (data) => {
 			dispatch(fetchGroupList() as any);
-			
+
 		});
 
 		socket.on("memberCloseGroup", (data) => {
@@ -402,7 +402,7 @@ const Page: React.FC = () => {
 						}
 
 						// Cập nhật danh sách tin nhắn (nếu chưa có)
-						if (messages.length === 0) {
+						if (messages.length === 0 || (activeGroup?.unreadCount ?? 0) > 0) {
 							const response: MessageResponse = await apiService.get<MessageResponse>(ENDPOINTS.CHAT.MESSAGE_LIST(activeGroupId, ""));
 
 							await Promise.all([
@@ -1111,13 +1111,8 @@ const Page: React.FC = () => {
 				</div>
 
 				<ChatInput
-					value={text}
-					onChange={(value) => {
-						setText(value);
-					}}
 					onSend={(text, file) => {
 						handleSendMessage({ text, imageFile: file });
-						setText("");
 					}}
 					isSending={isSending}
 					onAttach={() => console.log("Đính kèm file")}

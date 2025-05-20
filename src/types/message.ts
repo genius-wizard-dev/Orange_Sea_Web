@@ -10,6 +10,7 @@ export interface Message {
 	groupId: string;
 	content: string;
 	fileUrl: string | null;
+	fileUrls?: string[]; // Added support for multiple files
 	type: MessageType;
 	fileName: string | null;
 	fileSize: number | null;
@@ -41,4 +42,5 @@ export enum MessageType {
 	IMAGE = "IMAGE",
 	VIDEO = "VIDEO",
 	RAW = "RAW",
+	MULTI_IMAGE = "MULTI_IMAGE",
 };

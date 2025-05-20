@@ -16,6 +16,20 @@ const initialState: GroupState = {
 	state: "loading",
 };
 
+function sortGroups(groups: Group[]): Group[] {
+	return [...groups].sort((a, b) => {
+		const aUnread = (a.unreadCount || 0) > 0;
+		const bUnread = (b.unreadCount || 0) > 0;
+
+		if (aUnread && !bUnread) return -1;
+		if (!aUnread && bUnread) return 1;
+
+		const aTime = new Date(a.lastMessage?.createdAt || 0).getTime();
+		const bTime = new Date(b.lastMessage?.createdAt || 0).getTime();
+		return bTime - aTime;
+	});
+}
+
 const groupSlice = createSlice({
 	name: "group",
 	initialState,
@@ -43,17 +57,8 @@ const groupSlice = createSlice({
 			const group = state.groups.find(g => g.id === action.payload.groupId);
 			if (group) {
 				group.unreadCount = action.payload.count;
-
-				// sort groups by unread count
-				state.groups.sort((a, b) => {
-					const aCount = a.unreadCount || 0;
-					const bCount = b.unreadCount || 0;
-					if (aCount === bCount) {
-						return 0;
-					}
-					return aCount > bCount ? -1 : 1;
-				});
 			}
+			state.groups = sortGroups(state.groups);
 		},
 		setUnreadCountsToGroups: (
 			state,
@@ -64,16 +69,8 @@ const groupSlice = createSlice({
 				if (count !== undefined) {
 					group.unreadCount = count;
 				}
-				// sort groups by unread count
-				state.groups.sort((a, b) => {
-					const aCount = a.unreadCount || 0;
-					const bCount = b.unreadCount || 0;
-					if (aCount === bCount) {
-						return 0;
-					}
-					return aCount > bCount ? -1 : 1;
-				});
 			}
+			state.groups = sortGroups(state.groups);
 		},
 
 		plusUnReadCountToGroup: (
@@ -83,16 +80,8 @@ const groupSlice = createSlice({
 			const group = state.groups.find(g => g.id === action.payload.groupId);
 			if (group) {
 				group.unreadCount = (group.unreadCount || 0) + action.payload.count;
-				// sort groups by unread count
-				state.groups.sort((a, b) => {
-					const aCount = a.unreadCount || 0;
-					const bCount = b.unreadCount || 0;
-					if (aCount === bCount) {
-						return 0;
-					}
-					return aCount > bCount ? -1 : 1;
-				});
 			}
+			state.groups = sortGroups(state.groups);
 		},
 
 		updateLastMessage: (
@@ -124,17 +113,8 @@ const groupSlice = createSlice({
 					fileName: message.fileName ?? undefined,
 					senderId: message.sender ? message.sender.id : message.senderId,
 				};
-
-				// sort groups by last message time
-				state.groups.sort((a, b) => {
-					const aTime = a.lastMessage?.createdAt || 0;
-					const bTime = b.lastMessage?.createdAt || 0;
-					if (aTime === bTime) {
-						return 0;
-					}
-					return aTime > bTime ? -1 : 1;
-				});
 			}
+			state.groups = sortGroups(state.groups);
 		},
 
 		updateParticipants: (

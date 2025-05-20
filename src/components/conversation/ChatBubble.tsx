@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { CheckCheck, Check, Clock, FileText, Download } from "lucide-react";
+import { CheckCheck, Check, Clock, FileText, Download, Edit } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	DropdownMenu,
@@ -10,7 +10,8 @@ import {
 import { MoreVertical } from "lucide-react";
 import { Message, MessageType } from "@/types/message";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { MediaViewerDialog } from "./MediaViewerDialog";
 
 type MessageStatus = "sending" | "sent" | "seen";
 
@@ -102,6 +103,8 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 	onDelete,
 }) => {
 
+	const [isMediaDialogOpen, setIsMediaDialogOpen] = useState(false);
+
 	const bubbleColor =
 		data.isRecalled
 			? "bg-gray-200 text-gray-500 italic"
@@ -150,7 +153,6 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 		if (data.type === MessageType.TEXT) {
 			return <div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, corner)}>{content}</div>;
 		}
-
 		if (data.type === MessageType.IMAGE) {
 			return (
 				<>
@@ -158,7 +160,45 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 						<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, cornerMedia)}>{content}</div>
 					)}
 					<div className="flex flex-col gap-1">
-						<img src={data.fileUrl ?? undefined} alt="image" className="rounded-lg max-w-[240px] max-h-[180px] object-cover" />
+						<img 
+							src={data.fileUrl ?? undefined} 
+							alt="image" 
+							className="rounded-lg max-w-[240px] max-h-[180px] object-cover cursor-pointer" 
+							onClick={() => setIsMediaDialogOpen(true)} 
+						/>
+					</div>
+				</>
+			);
+		}
+		
+		if (data.type === MessageType.MULTI_IMAGE && data.fileUrls && data.fileUrls.length > 0) {
+			return (
+				<>
+					{content && (
+						<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, cornerMedia)}>{content}</div>
+					)}
+					<div className="grid grid-cols-2 gap-1 max-w-[240px]">
+						{data.fileUrls.slice(0, 4).map((url, index) => (
+							<div 
+								key={index} 
+								className={cn(
+									"relative cursor-pointer",
+									data.fileUrls && data.fileUrls.length === 3 && index === 0 ? "col-span-2" : ""
+								)}
+								onClick={() => setIsMediaDialogOpen(true)}
+							>
+								<img 
+									src={url} 
+									alt={`image-${index}`} 
+									className="rounded-lg w-full h-[90px] object-cover" 
+								/>
+								{index === 3 && data.fileUrls && data.fileUrls.length > 4 && (
+									<div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+										<span className="text-white text-lg font-semibold">+{data.fileUrls.length - 4}</span>
+									</div>
+								)}
+							</div>
+						))}
 					</div>
 				</>
 			);
@@ -218,14 +258,24 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 
 			<div className="relative flex flex-col gap-1 group/message">
 
-				{data.editedAt && (
-					<span className="ml-2 italic text-gray-400 text-xs">(đã chỉnh sửa)</span>
+
+				{/* Display name when isGroup is true and isOwn is true */}
+				{!isOwn && (
+					<span className="text-xs text-gray-500 font-semibold">
+						{data.sender.name}
+					</span>
 				)}
+
+				{/* Message content */}
+
 				{renderContent()}
 
 				<div className={cn("flex items-center text-xs text-gray-400 mt-1",
 					isOwn ? "justify-end" : "justify-start",
 				)}>
+					{data.editedAt && (
+						<span className="ml-2 italic text-gray-400 text-xs"><Edit /></span>
+					)}
 					<span>{formatMessageTime(data.createdAt)}</span>
 					<RenderStatusIcon />
 				</div>
@@ -257,7 +307,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 								onClick={() => {
 									// Đảm bảo DropdownMenu đã đóng hoàn toàn trước khi mở Dialog
 									requestAnimationFrame(() => {
-										onForward();
+										if (onForward) onForward();
 									});
 								}}
 							>
@@ -270,7 +320,15 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
-				</div>
+				</div>				{/* Media Viewer Dialog */}
+				<MediaViewerDialog
+					isOpen={isMediaDialogOpen}
+					onClose={() => setIsMediaDialogOpen(false)}
+					mediaType={data.type}
+					mediaUrl={data.fileUrl}
+					mediaUrls={data.fileUrls}
+					mediaContent={data.content}
+				/>
 			</div>
 		</div>
 	);

@@ -11,8 +11,6 @@ import {
 import { cn } from "@/lib/utils";
 
 type ChatInputProps = {
-	value: string;
-	onChange: (val: string) => void;
 	onSend: (text: string, fileImage: any) => void;
 	isSending?: boolean;
 	// setIsSending?: (val: boolean) => void;
@@ -28,8 +26,6 @@ const stickers = [
 ];
 
 export const ChatInput: React.FC<ChatInputProps> = ({
-	value,
-	onChange,
 	onSend,
 	isSending,
 	onAttach,
@@ -38,6 +34,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 	const [previewImage, setPreviewImage] = useState<string | null>(null);
 	const [imageFile, setImageFile] = useState<File | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [value, setValue] = useState("");
 
 	useEffect(() => {
 		if (textareaRef.current) {
@@ -72,7 +69,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 			const start = textarea.selectionStart;
 			const end = textarea.selectionEnd;
 			const newText = value.slice(0, start) + text + value.slice(end);
-			onChange(newText);
+			setValue(newText);
 			setTimeout(() => {
 				textarea.focus();
 				textarea.setSelectionRange(
@@ -130,12 +127,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 				<textarea
 					ref={textareaRef}
 					value={value}
-					onChange={(e) => onChange(e.target.value)}
+					onChange={(e) => setValue(e.target.value)}
 					// enter to send
 					onKeyDown={(e) => {
 						if (e.key === "Enter" && !e.shiftKey) {
 							e.preventDefault();
 							onSend(value, imageFile);
+							setValue("");
 							setPreviewImage(null);
 							setImageFile(null);
 						}
@@ -192,6 +190,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 						onSend(value, imageFile)
 						setPreviewImage(null);
 						setImageFile(null);
+						setValue("");
 					}}
 					className="text-orange-500 hover:text-orange-600"
 				>

@@ -107,9 +107,9 @@ const Conversation: React.FC<ConversationProps> = ({
 						) : message?.content ? (
 							(message?.content ?? '').length > 30 ? (message?.content ?? '').slice(0, 30) + '...' : message?.content ?? ''
 						) : message?.fileUrl ? (
-							<a href={message.fileUrl} target="_blank" rel="noopener noreferrer">
+							<span className="italic">
 								Tệp đính kèm
-							</a>
+							</span>
 						) : (
 							<span className="italic">Chưa có tin nhắn nào</span>
 						)
