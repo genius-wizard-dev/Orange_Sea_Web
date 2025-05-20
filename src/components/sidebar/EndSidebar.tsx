@@ -311,13 +311,23 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                 }
             );
             // Nếu backend trả về cả IMAGE, VIDEO, FILE, bạn có thể filter ở FE:
-            const data = Array.isArray(res.data)
-                ? res.data.filter((item: any) => item.type === "IMAGE" || item.type === "VIDEO")
-                : [];
-            setMediaList(cursor ? [...mediaList, ...data] : data);
-            setMediaCursor(res.cursor || null);
+            if (res.statusCode !== 200) {
+                toast.error(res.message || "Lỗi khi tải media");
+                return;
+            } else {
+                // toast.success("Tải media thành công");
+
+                console.log("res", res);
+
+                const data = res.data.media || [];
+
+                setMediaList(cursor ? [...mediaList, ...data] : data);
+                setMediaCursor(res.cursor || null);
+
+            }
         } finally {
             setLoadingMedia(false);
+            console.log("mediaList", mediaList);
         }
     };
 
@@ -400,11 +410,7 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                         {mediaList.length === 0 && <div className="col-span-3 text-center text-gray-500">Không có media</div>}
                         {mediaList.map((item) => (
                             <div key={item.id} className="w-full h-24 bg-gray-200 rounded flex items-center justify-center overflow-hidden">
-                                {item.type === "IMAGE" ? (
-                                    <img src={item.url} alt={item.name} className="object-cover w-full h-full" />
-                                ) : (
-                                    <video src={item.url} controls className="object-cover w-full h-full" />
-                                )}
+                                <img src={item.fileUrl} alt={item.fileName} className="object-cover w-full h-full" />
                             </div>
                         ))}
                     </div>
@@ -764,36 +770,19 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                                         </Button>
                                     </>
                                 )}
-                                {activeGroup?.isGroup && (
-                                    <>
-                                        <Button
-                                            variant="ghost"
-                                            className="w-full justify-start text-red-500"
-                                            onClick={() => setIsLeaveGroupDialogOpen(true)}
-                                        >
-                                            Rời khỏi nhóm
-                                        </Button>
-                                    </>
-                                )}
-                                {!activeGroup?.isGroup && (
-                                    <>
-                                        <Button
-                                            variant="ghost"
-                                            className="w-full justify-start text-red-500"
-                                            onClick={() => setIsRemoveGroupDialogOpen(true)}
-                                        >
-                                            Xóa cuộc trò chuyện
-                                        </Button>
-                                    </>
-                                )}
+                                <Button
+                                    variant="ghost"
+                                    className="w-full justify-start text-red-500"
+                                    onClick={() => setIsLeaveGroupDialogOpen(true)}
+                                >
+                                    Rời khỏi nhóm
+                                </Button>
                                 <Dialog open={isLeaveGroupDialogOpen} onOpenChange={setIsLeaveGroupDialogOpen}>
                                     <DialogContent>
                                         <DialogHeader>
                                             <DialogTitle>Rời khỏi nhóm</DialogTitle>
                                             <DialogDescription>
-                                                {activeGroup?.ownerId === userProfile?.id
-                                                    ? "Bạn là trưởng nhóm. Vui lòng chuyển quyền trưởng nhóm cho thành viên khác trước khi rời nhóm."
-                                                    : "Bạn có chắc chắn muốn rời khỏi nhóm này không?"}
+                                                Bạn có chắc chắn muốn rời khỏi nhóm này không?
                                             </DialogDescription>
                                         </DialogHeader>
                                         <DialogFooter>
@@ -803,15 +792,10 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                                             <Button
                                                 variant="destructive"
                                                 onClick={async () => {
-                                                    if (activeGroup?.ownerId === userProfile?.id) {
-                                                        toast.warning("Bạn cần chuyển quyền trưởng nhóm cho thành viên khác trước khi rời nhóm.");
-                                                        return;
-                                                    }
                                                     if (activeGroup?.id) {
                                                         await handleLeaveGroup(activeGroup.id);
                                                     }
                                                 }}
-                                                disabled={activeGroup?.ownerId === userProfile?.id}
                                             >
                                                 Rời nhóm
                                             </Button>
