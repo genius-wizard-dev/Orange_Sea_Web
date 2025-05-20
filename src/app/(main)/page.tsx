@@ -37,6 +37,7 @@ import { m } from "framer-motion";
 import { fetchGroupList } from "@/redux/thunks/group";
 import { Upload } from "lucide-react";
 import { getFriend, getReceived, getRequested } from "@/redux/thunks/friend";
+import { EditMessageDialog } from "@/components/conversation/EditMessageDialog";
 
 
 const Page: React.FC = () => {
@@ -70,6 +71,10 @@ const Page: React.FC = () => {
 	const activeUsers = useSelector((state: RootState) => state.chat.activeUsersByGroup);
 	const isConversationLoading = useSelector((state: RootState) => state.group.state === "loading");
 	const activeGroup = groups.find(g => g.id === activeGroupId);
+
+	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+	const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+	const [editingMessageContent, setEditingMessageContent] = useState<string>("");
 
 	// Online status: ACTIVE, ONLINE, OFFLINE
 	const useOnlineStatus = (userId: string): "OFFLINE" | "ONLINE" | "ACTIVE" => {
@@ -160,7 +165,7 @@ const Page: React.FC = () => {
 			});
 
 		});
-		
+
 
 		// Lắng nghe sự kiện server gửi về
 		socket.on("unReadMessages", (data) => {
@@ -364,6 +369,44 @@ const Page: React.FC = () => {
 			//   sendingRequests: [...] // Yêu cầu kết bạn đã gửi
 			// }
 			console.log("🚀 Cập nhật yêu cầu kết bạn:", data);
+		});
+
+		socket.on("messageEdit", async (data) => {
+			const { messageId, groupId } = data;
+
+			const response: MessageResponse = await apiService.get<MessageResponse>(ENDPOINTS.CHAT.MESSAGE_LIST(groupId, ""));
+
+			dispatch(loadInitialMessages({
+				groupId: groupId,
+				messages: response.data.messages,
+				nextCursor: response.data.nextCursor,
+				hasMore: response.data.hasMore,
+			}));
+
+			if (groups.find(g => g.id === groupId)?.lastMessage?.id === messageId) {
+				dispatch(updateLastMessage({
+					groupId: groupId,
+					// last message is last message of data
+					message: response.data.messages[response.data.messages.length - 1],
+				}));
+			}
+
+		});
+
+		socket.on("messageDelete", (data) => {
+			const { messageId, groupId } = data;
+			console.log("Xóa tin nhắn trong:", data);
+
+			dispatch(removeMessage({ groupId: groupId, messageId: messageId }));
+
+			// Update last message in group
+			const checkGroupLastMessage = groups.find(g => g.id === groupId)?.lastMessage?.id === messageId ? groups.find(g => g.id === groupId) : null;
+			if (checkGroupLastMessage) {
+				dispatch(clearLastMessage({
+					groupId: checkGroupLastMessage.id,
+				}));
+			}
+
 		});
 
 	}, [])
@@ -625,22 +668,31 @@ const Page: React.FC = () => {
 	};
 
 	//Handle edit message
-	const handleEditMessage = async (messageId: string, currentContent: string) => {
-		const newContent = prompt("Nhập nội dung mới cho tin nhắn:", currentContent);
+	const openEditMessageDialog = (messageId: string, currentContent: string) => {
+		console.log("Mở dialog edit:", { messageId, currentContent });
+		setEditingMessageId(messageId);
+		setEditingMessageContent(currentContent);
+		setIsEditDialogOpen(true);
+	};
 
-		if (!newContent || newContent.trim() === "") {
+	const handleSaveEditMessage = async (newContent: string) => {
+		console.log("Nội dung gửi lên API:", newContent);
+		if (!editingMessageId) return;
+		const trimmedContent = newContent.trim();
+		if (!trimmedContent) {
 			toast.warning("Nội dung tin nhắn không được để trống.");
 			return;
 		}
-
 		try {
-			// Sửa lại tên trường nếu backend yêu cầu là 'message'
-			const payload = { message: newContent.trim() }; // thử đổi thành 'message'
-			console.log("Gửi API edit:", ENDPOINTS.CHAT.EDIT(messageId), payload);
+			const payload = { newContent: trimmedContent };
+			const response: any = await apiService.put(ENDPOINTS.CHAT.EDIT(editingMessageId), payload);
 
-			const response: any = await apiService.put(ENDPOINTS.CHAT.EDIT(messageId), payload);
+
 
 			if (response.statusCode === 200) {
+				socket.emit('editMessage', {
+					messageId: response.data.id,
+				});
 				const updatedMessage = mapServerMessageToClient(response.data);
 
 				dispatch(addMessage({
@@ -648,19 +700,16 @@ const Page: React.FC = () => {
 					message: updatedMessage,
 				}));
 
-				socket.emit('editMessage', {
-					messageId: updatedMessage.id,
-					groupId: updatedMessage.groupId,
-					editedMessage: response.data,
-				});
+
 
 				toast.success("Tin nhắn đã được chỉnh sửa thành công!");
+				setIsEditDialogOpen(false);
 			} else {
 				toast.warning(response.message || "Không thể chỉnh sửa tin nhắn. Vui lòng thử lại.");
 			}
-		} catch (error) {
+		} catch (error: any) {
 			console.error("Lỗi khi gọi API chỉnh sửa tin nhắn:", error);
-			toast.warning("Đã xảy ra lỗi khi chỉnh sửa tin nhắn. Vui lòng thử lại.");
+			toast.warning(error.response?.data?.message || "Đã xảy ra lỗi khi chỉnh sửa tin nhắn. Vui lòng thử lại.");
 		}
 	};
 
@@ -1100,7 +1149,7 @@ const Page: React.FC = () => {
 
 									}}
 
-									onEdit={() => handleEditMessage(msg.id, msg.content)}
+									onEdit={() => openEditMessageDialog(msg.id, msg.content)}
 
 									onDelete={() => handleDeleteMessage(msg.id)}
 								/>
@@ -1122,16 +1171,8 @@ const Page: React.FC = () => {
 				hidden={!isEndSidebarOpen}
 				onClose={() => setIsEndSidebarOpen(false)}
 				activeGroup={activeGroup}
-				// setIsCreateConversationOpen={setIsCreateConversationOpen}
 				userProfile={userProfile}
-			// onEditGroup={handleEditGroupClick}
-			// onAddMemberClick={() => {
-			// 	console.log("Thêm thành viên vào nhóm");
-			// }}
-			// onRemoveMemberClick={(memberId) => {
-			// 	console.log('Nút xóa thành viên (header) được click');
-			// }}
-			// onLeaveGroup={handleLeaveGroup} // Gọi hàm rời nhóm khi click nút "Rời nhóm"
+
 			>
 
 			</EndSidebar>
@@ -1160,6 +1201,12 @@ const Page: React.FC = () => {
 				groups={groups}
 			/>
 
+			<EditMessageDialog
+				open={isEditDialogOpen}
+				initialContent={editingMessageContent}
+				onClose={() => setIsEditDialogOpen(false)}
+				onSave={handleSaveEditMessage}
+			/>
 
 		</div >
 

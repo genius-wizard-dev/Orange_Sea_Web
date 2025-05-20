@@ -17,13 +17,13 @@ type ChatInputProps = {
 	onAttach?: () => void;
 };
 
-const stickers = [
-	"https://i.imgur.com/3aXJ2cT.png",
-	"https://i.imgur.com/W5DqNfl.png",
-	"https://i.imgur.com/NWZc7Kx.png",
-	"https://i.imgur.com/X7Erbvb.png",
-	"https://i.imgur.com/NXwC2kx.png",
-];
+// const stickers = [
+// 	"https://i.imgur.com/3aXJ2cT.png",
+// 	"https://i.imgur.com/W5DqNfl.png",
+// 	"https://i.imgur.com/NWZc7Kx.png",
+// 	"https://i.imgur.com/X7Erbvb.png",
+// 	"https://i.imgur.com/NXwC2kx.png",
+// ];
 
 export const ChatInput: React.FC<ChatInputProps> = ({
 	onSend,
@@ -165,7 +165,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 						</Button>
 					</PopoverTrigger>
 					<PopoverContent className="w-48 grid grid-cols-3 gap-2 p-2 shadow-none">
-						{stickers.map((src, idx) => (
+						{/* {stickers.map((src, idx) => (
 							<Button
 								key={idx}
 								variant="ghost"
@@ -179,7 +179,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 									className="w-12 h-12 object-contain"
 								/>
 							</Button>
-						))}
+						))} */}
 					</PopoverContent>
 				</Popover>
 

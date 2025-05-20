@@ -343,7 +343,7 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
         } finally {
             setLoadingFile(false);
         }
-    }; 
+    };
     useEffect(() => {
         if (viewAll === 'media') fetchMedia();
         if (viewAll === 'files') fetchFiles();
@@ -764,19 +764,36 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                                         </Button>
                                     </>
                                 )}
-                                <Button
-                                    variant="ghost"
-                                    className="w-full justify-start text-red-500"
-                                    onClick={() => setIsLeaveGroupDialogOpen(true)}
-                                >
-                                    Rời khỏi nhóm
-                                </Button>
+                                {activeGroup?.isGroup && (
+                                    <>
+                                        <Button
+                                            variant="ghost"
+                                            className="w-full justify-start text-red-500"
+                                            onClick={() => setIsLeaveGroupDialogOpen(true)}
+                                        >
+                                            Rời khỏi nhóm
+                                        </Button>
+                                    </>
+                                )}
+                                {!activeGroup?.isGroup && (
+                                    <>
+                                        <Button
+                                            variant="ghost"
+                                            className="w-full justify-start text-red-500"
+                                            onClick={() => setIsRemoveGroupDialogOpen(true)}
+                                        >
+                                            Xóa cuộc trò chuyện
+                                        </Button>
+                                    </>
+                                )}
                                 <Dialog open={isLeaveGroupDialogOpen} onOpenChange={setIsLeaveGroupDialogOpen}>
                                     <DialogContent>
                                         <DialogHeader>
                                             <DialogTitle>Rời khỏi nhóm</DialogTitle>
                                             <DialogDescription>
-                                                Bạn có chắc chắn muốn rời khỏi nhóm này không?
+                                                {activeGroup?.ownerId === userProfile?.id
+                                                    ? "Bạn là trưởng nhóm. Vui lòng chuyển quyền trưởng nhóm cho thành viên khác trước khi rời nhóm."
+                                                    : "Bạn có chắc chắn muốn rời khỏi nhóm này không?"}
                                             </DialogDescription>
                                         </DialogHeader>
                                         <DialogFooter>
@@ -786,10 +803,15 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                                             <Button
                                                 variant="destructive"
                                                 onClick={async () => {
+                                                    if (activeGroup?.ownerId === userProfile?.id) {
+                                                        toast.warning("Bạn cần chuyển quyền trưởng nhóm cho thành viên khác trước khi rời nhóm.");
+                                                        return;
+                                                    }
                                                     if (activeGroup?.id) {
                                                         await handleLeaveGroup(activeGroup.id);
                                                     }
                                                 }}
+                                                disabled={activeGroup?.ownerId === userProfile?.id}
                                             >
                                                 Rời nhóm
                                             </Button>
