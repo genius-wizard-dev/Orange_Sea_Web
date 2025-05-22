@@ -9,10 +9,11 @@ export const RegisterRequestSchema = z.object({
       message: "Mật khẩu phải chứa ít nhất 1 chữ số và 1 ký tự đặc biệt",
     }
   ),
+  role: z.enum(["USER", "ADMIN"]).optional(),
 });
 
 export const RegisterResponseSchema = z.object({
-  status: z.string(),
+  statusCode: z.number(),
   message: z.string(),
   data: z.object({
     email: z.string().email(),

@@ -1,13 +1,14 @@
 
+import { profile } from "@/redux/thunks/profile";
 import { Group } from "@/types/group";
 import { MessageType } from "@/types/message";
 
+
 export const mapGroupListToGroups = (
 	groupList: any[],
-	currentProfileId: string
 ): Group[] => {
 	return groupList.map((raw) => {
-		const lastMessage = raw.messages?.[0];
+		const lastMessage = raw.lastMessage;
 
 		return {
 			id: raw.id,
@@ -32,14 +33,13 @@ export const mapGroupListToGroups = (
 				: undefined,
 			unreadCount: 0, // hoặc cập nhật từ backend nếu có
 			participants: raw.participants
-				?.filter((p: any) => p.userId !== currentProfileId)
 				.map((p: any) => ({
 					id: p.id,
-					userId: p.userId,
+					userId: p.profileId,
 					role: p.role,
 					joinedAt: p.joinedAt,
-					name: p.user?.name ?? '',
-					avatarUrl: p.user?.avatar ?? undefined,
+					name: p.name ?? '',
+					avatarUrl: p.avatar ?? undefined,
 				})),
 		};
 	});

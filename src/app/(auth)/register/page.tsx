@@ -18,6 +18,7 @@ const RegisterPage: React.FC = () => {
     email: "",
     username: "",
     password: "",
+    role: "USER",
   });
   const [repeatPassword, setRepeatPassword] = useState<string>("");
   const handleSubmit = async () => {
@@ -39,14 +40,18 @@ const RegisterPage: React.FC = () => {
         ENDPOINTS.AUTH.REGISTER,
         registerData
       );
-      if (res.data) {
+      if (res.statusCode === 200 && res.data) {
         if (res.data.key) {
-          setRegisterKeyInCookies(res.data.key);
-          setEmailInCookies(res.data.email);
+          Promise.all([
+            toast.success("Đăng ký thành công!"),
+            setRegisterKeyInCookies(res.data.key),
+            setEmailInCookies(res.data.email),
+            router.push("/otp")
+          ]);
+        } else {
+          toast.error("Không tìm thấy key trong response");
+          return;
         }
-
-        toast.success(res.message);
-        router.push("/otp");
       }
     } catch (error) {
       console.error("Register Error", error);

@@ -6,12 +6,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useMemo } from "react";
 import { Friend } from "@/types/friend";
 import { Search } from "lucide-react";
+import apiService from "@/service/api.service";
+import { ENDPOINTS } from "@/service/api.endpoint";
+import { toast } from "sonner";
 
 type CreateConversationDialogProps = {
 	isOpen: boolean;
 	onClose: () => void;
 	friends: Friend[];
-	onCreate: (selectedIds: string[], groupName: string) => void;
+	onCreate: (group: any) => void;
 };
 
 export const CreateConversationDialog: React.FC<CreateConversationDialogProps> = ({
@@ -22,7 +25,7 @@ export const CreateConversationDialog: React.FC<CreateConversationDialogProps> =
 }) => {
 	const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
 	const [searchTerm, setSearchTerm] = useState<string>("");
-	const [groupName, setGroupName] = useState<string>(""); // State cho tên nhóm
+	const [groupName, setGroupName] = useState<string>("");
 
 	const toggleSelect = (id: string) => {
 		setSelectedFriendIds((prev) =>
@@ -30,19 +33,38 @@ export const CreateConversationDialog: React.FC<CreateConversationDialogProps> =
 		);
 	};
 
-	const handleCreate = () => {
-		if (selectedFriendIds.length > 0) {
-			onCreate(selectedFriendIds, groupName);
-			setSelectedFriendIds([]);
-			setSearchTerm("");
-			setGroupName(""); // Reset tên nhóm
-			onClose();
+	const handleCreate = async () => {
+		if (selectedFriendIds.length > 0 && groupName.trim() !== "") {
+			try {
+				const response: any = await apiService.post(ENDPOINTS.GROUP.CREATE, {
+					participantIds: selectedFriendIds,
+					name: groupName,
+				});
+				console.log("Tạo nhóm response:", response);
+
+				const groupData = response.data || response;
+
+				if (response.statusCode === 200) {
+					onCreate(groupData); // Gọi callback lên page.tsx
+					setSelectedFriendIds([]);
+					setSearchTerm("");
+					setGroupName("");
+					onClose();
+				} else {
+					toast.error("Không thể tạo nhóm. Vui lòng thử lại.");
+				}
+			} catch {
+				toast.error("Đã xảy ra lỗi khi tạo nhóm. Vui lòng thử lại.");
+			}
 		}
 	};
 
 	const filteredFriends = useMemo(() => {
-		if (!searchTerm.trim()) return friends;
-		return friends.filter((friend) =>
+		const list = Array.isArray(friends) ? friends : [];
+		if (!searchTerm.trim()) {
+			return list;
+		}
+		return list.filter((friend) =>
 			friend.name.toLowerCase().includes(searchTerm.toLowerCase())
 		);
 	}, [friends, searchTerm]);
@@ -55,12 +77,12 @@ export const CreateConversationDialog: React.FC<CreateConversationDialogProps> =
 				</DialogHeader>
 
 				<div className="py-2">
-                    <Input
-                        placeholder="Tên nhóm..."
-                        value={groupName}
-                        onChange={(e) => setGroupName(e.target.value)}
-                    />
-                </div>
+					<Input
+						placeholder="Tên nhóm..."
+						value={groupName}
+						onChange={(e) => setGroupName(e.target.value)}
+					/>
+				</div>
 
 				<div className="py-2">
 					<Input
@@ -81,12 +103,10 @@ export const CreateConversationDialog: React.FC<CreateConversationDialogProps> =
 							filteredFriends.map((friend) => (
 								<div
 									key={friend.profileId}
-									className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-100 transition"
+									className={`flex items-center gap-3 p-2 rounded-md hover:bg-gray-100 transition cursor-pointer ${selectedFriendIds.includes(friend.profileId) ? "bg-blue-100" : ""
+										}`}
+									onClick={() => toggleSelect(friend.profileId)}
 								>
-									<Checkbox
-										checked={selectedFriendIds.includes(friend.profileId)}
-										onCheckedChange={() => toggleSelect(friend.profileId)}
-									/>
 									{friend.avatar ? (
 										<img
 											src={friend.avatar}
@@ -108,11 +128,8 @@ export const CreateConversationDialog: React.FC<CreateConversationDialogProps> =
 						Huỷ
 					</Button>
 					<Button
-						onClick={() =>{
-							handleCreate();
-							onClose();
-						}}
-						disabled={selectedFriendIds.length === 0  || groupName.trim() === ""}
+						onClick={handleCreate}
+						disabled={selectedFriendIds.length === 0 || groupName.trim() === ""}
 					>
 						Tạo
 					</Button>

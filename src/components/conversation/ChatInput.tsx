@@ -1,4 +1,4 @@
-import { Paperclip, Smile, Send, Image, Sticker, X } from "lucide-react";
+import { Paperclip, Smile, Send, Image, Sticker, X, Clock } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import EmojiPicker from 'emoji-picker-react';
 
@@ -11,30 +11,30 @@ import {
 import { cn } from "@/lib/utils";
 
 type ChatInputProps = {
-	value: string;
-	onChange: (val: string) => void;
 	onSend: (text: string, fileImage: any) => void;
+	isSending?: boolean;
+	// setIsSending?: (val: boolean) => void;
 	onAttach?: () => void;
 };
 
-const stickers = [
-	"https://i.imgur.com/3aXJ2cT.png",
-	"https://i.imgur.com/W5DqNfl.png",
-	"https://i.imgur.com/NWZc7Kx.png",
-	"https://i.imgur.com/X7Erbvb.png",
-	"https://i.imgur.com/NXwC2kx.png",
-];
+// const stickers = [
+// 	"https://i.imgur.com/3aXJ2cT.png",
+// 	"https://i.imgur.com/W5DqNfl.png",
+// 	"https://i.imgur.com/NWZc7Kx.png",
+// 	"https://i.imgur.com/X7Erbvb.png",
+// 	"https://i.imgur.com/NXwC2kx.png",
+// ];
 
 export const ChatInput: React.FC<ChatInputProps> = ({
-	value,
-	onChange,
 	onSend,
+	isSending,
 	onAttach,
 }) => {
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const [previewImage, setPreviewImage] = useState<string | null>(null);
 	const [imageFile, setImageFile] = useState<File | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [value, setValue] = useState("");
 
 	useEffect(() => {
 		if (textareaRef.current) {
@@ -69,7 +69,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 			const start = textarea.selectionStart;
 			const end = textarea.selectionEnd;
 			const newText = value.slice(0, start) + text + value.slice(end);
-			onChange(newText);
+			setValue(newText);
 			setTimeout(() => {
 				textarea.focus();
 				textarea.setSelectionRange(
@@ -86,6 +86,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
 	return (
 		<div className="bg-white/30 gap-2 border-t border-gray-200 backdrop-blur-lg shadow-md shadow-gray-300/50 p-2">
+
+			{isSending && (
+				<div className="absolute inset-0 bg-white/30 backdrop-blur-lg border flex items-center justify-center background-white/30">
+					<Clock className="w-5 h-5 text-orange-500 animate-spin mr-3" /> <span> Đang gửi...</span>
+				</div>
+			)}
 
 			{imageFile && (
 				<div className="relative w-fit max-w-[250px] flex items-center gap-2 border rounded-xl p-2 shadow-md bg-white">
@@ -121,7 +127,17 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 				<textarea
 					ref={textareaRef}
 					value={value}
-					onChange={(e) => onChange(e.target.value)}
+					onChange={(e) => setValue(e.target.value)}
+					// enter to send
+					onKeyDown={(e) => {
+						if (e.key === "Enter" && !e.shiftKey) {
+							e.preventDefault();
+							onSend(value, imageFile);
+							setValue("");
+							setPreviewImage(null);
+							setImageFile(null);
+						}
+					}}
 					placeholder="Type something..."
 					className={cn(
 						"transition-all duration-200 ease-in-out",
@@ -149,7 +165,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 						</Button>
 					</PopoverTrigger>
 					<PopoverContent className="w-48 grid grid-cols-3 gap-2 p-2 shadow-none">
-						{stickers.map((src, idx) => (
+						{/* {stickers.map((src, idx) => (
 							<Button
 								key={idx}
 								variant="ghost"
@@ -163,7 +179,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 									className="w-12 h-12 object-contain"
 								/>
 							</Button>
-						))}
+						))} */}
 					</PopoverContent>
 				</Popover>
 
@@ -174,6 +190,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 						onSend(value, imageFile)
 						setPreviewImage(null);
 						setImageFile(null);
+						setValue("");
 					}}
 					className="text-orange-500 hover:text-orange-600"
 				>

@@ -22,6 +22,9 @@ export const ProfileSchema = z.object({
       }
     )
     .default(""),
+  gender: z.enum(["F", "M"])
+    .describe("Gender (F for female, M for male)")
+    .default("F"),
   birthday: z.string().nullable().optional()
   .refine(
     (date) => {
@@ -95,9 +98,9 @@ export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
 
 // API Response schema
 export const ProfileResponseSchema = z.object({
-  status: z.string(),
+  statusCode: z.number(),
   message: z.string(),
-  data: ProfileSchema,
+  data: ProfileSchema.optional(),
 });
 
 export type ProfileResponse = z.infer<typeof ProfileResponseSchema>;
