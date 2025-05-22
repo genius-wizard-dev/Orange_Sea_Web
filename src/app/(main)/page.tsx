@@ -1197,7 +1197,7 @@ const Page: React.FC = () => {
 			<ForwardMessageDialog
 				open={isForwardOpen}
 				onClose={() => setIsForwarOpen(false)}
-				onForward={() => handleForwardMessage}
+				onForward={handleForwardMessage}
 				groups={groups}
 			/>
 
