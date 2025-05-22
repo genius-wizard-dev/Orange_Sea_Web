@@ -298,14 +298,17 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 									<DropdownMenuItem onClick={onRecall}>
 										Thu hồi
 									</DropdownMenuItem>
-									<DropdownMenuItem onClick={onEdit}>
+									<DropdownMenuItem onClick={() => {
+										requestAnimationFrame(() => {
+											if (onEdit) onEdit();
+										});
+									}}>
 										Chỉnh sửa
 									</DropdownMenuItem>
 								</>
 							)}
 							<DropdownMenuItem
 								onClick={() => {
-									// Đảm bảo DropdownMenu đã đóng hoàn toàn trước khi mở Dialog
 									requestAnimationFrame(() => {
 										if (onForward) onForward();
 									});
