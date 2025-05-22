@@ -12,7 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RootState } from "@/redux/slices";
 import { openUserModal } from "@/redux/slices/userModal";
 import { AppDispatch } from "@/redux/store";
-import { getFriend, getReceived, getRequested } from "@/redux/thunks/friend";
+import { acceptFriendRequest, cancelFriendRequest, getFriend, getReceived, getRequested, rejectFriendRequest } from "@/redux/thunks/friend";
+import { fetchGroupList } from "@/redux/thunks/group";
 import { fetchUserProfile } from "@/redux/thunks/userModal";
 import { ENDPOINTS } from "@/service/api.endpoint";
 import apiService from "@/service/api.service";
@@ -28,6 +29,7 @@ import {
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
+import { ScrollArea } from "../ui/scroll-area";
 
 interface FriendDialogProps {
   isOpen: boolean;
@@ -48,10 +50,10 @@ const FriendCard: React.FC<
     isRemoving: boolean;
   }
 > = ({ profileId, name, avatar, id, onRemoveFriend, isRemoving, onModalOpen }) => (
-  <div className="p-4 bg-card rounded-xl shadow flex items-center gap-4 transition hover:bg-accent">
-    <Avatar className="cursor-pointer" onClick={() => {
+  <div className="p-4 bg-card rounded-xl shadow flex items-center gap-4 transition hover:bg-accent cursor-pointer" onClick={() => {
       onModalOpen(profileId);
     }}>
+    <Avatar className="cursor-pointer">
       <AvatarImage src={avatar} alt={name} />
       <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
     </Avatar>
@@ -59,12 +61,9 @@ const FriendCard: React.FC<
       <p className="font-medium">{name}</p>
       <p className="text-sm text-muted-foreground">Bạn bè</p>
     </div>
-    <Button variant="outline" size="sm">
-      <UserCheck className="w-4 h-4 mr-1" /> Nhắn tin
-    </Button>
     <Button
       variant="outline"
-      size="sm"
+      size="xs"
       onClick={() => {
         onRemoveFriend(id);
       }}
@@ -101,7 +100,7 @@ const RequestCard: React.FC<
     </div>
     <div className="flex gap-2">
       <Button
-        size="sm"
+        size="xs"
         variant="outline"
         onClick={() => onAccept(requestId)}
         disabled={isHandling}
@@ -110,7 +109,7 @@ const RequestCard: React.FC<
         Xác nhận
       </Button>
       <Button
-        size="sm"
+        size="xs"
         variant="ghost"
         onClick={() => onReject(requestId)}
         disabled={isHandling}
@@ -139,7 +138,7 @@ const SentCard: React.FC<
       <p className="text-sm text-muted-foreground">Đang chờ phản hồi</p>
     </div>
     <Button
-      size="sm"
+      size="xs"
       variant="outline"
       onClick={() => onCancel(id)}
       disabled={isRemoving}
@@ -258,21 +257,17 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
 
   const handleRemoveFriendShip = (friendShipId: string) => {
     setPendingFriendShip(friendShipId);
-    apiService
-      .put(ENDPOINTS.FRIEND.REMOVE_FRIEND(friendShipId))
-      .then(async (response: any) => {
-        if (response.status === "success") {
-          toast.success("Đã hủy kết bạn");
-          await fetchFriendData();
-        }
-      })
-      .catch((error) => {
-        console.error("Error removing friend:", error);
-        toast.error(error.message || "Không thể hủy kết bạn");
-      })
-      .finally(() => {
-        setPendingFriendShip(null);
-      });
+    try {
+      dispatch(cancelFriendRequest(friendShipId) as any)
+        .unwrap()
+      toast.success("Đã hủy kết bạn");
+      fetchFriendData();
+    } catch (error) {
+      console.error("Error removing friend:", error);
+      toast.error("Không thể hủy kết bạn");
+    } finally {
+      setPendingFriendShip(null);
+    }
   };
 
   // const handleSendFriendRequest = (userId: string) => {
@@ -305,44 +300,35 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
 
   const handleAcceptRequest = (requestId: string) => {
     setPendingRequestAction(requestId);
-    apiService
-      .put(ENDPOINTS.FRIEND.HANDLE_REQUEST(requestId), {
-        action: "ACCEPT",
-      })
-      .then(async (response: any) => {
-        if (response.status === "success") {
-          await fetchFriendData();
-          toast.success("Đã chấp nhận lời mời kết bạn");
-        }
-      })
-      .catch((error) => {
-        console.error("Error accepting friend request:", error);
-        toast.error("Không thể chấp nhận lời mời kết bạn");
-      })
-      .finally(() => {
-        setPendingRequestAction(null);
-      });
+    try {
+      dispatch(acceptFriendRequest(requestId) as any)
+        .unwrap()
+      toast.success("Đã xác nhận lời mời kết bạn");
+      fetchFriendData();
+      dispatch(fetchGroupList() as any);
+
+    } catch (error) {
+      console.error("Error accepting friend request:", error);
+      toast.error("Không thể xác nhận lời mời kết bạn");
+    } finally {
+      setPendingRequestAction(null);
+    }
   };
 
   const handleRejectRequest = (requestId: string) => {
     setPendingRequestAction(requestId);
-    apiService
-      .put(ENDPOINTS.FRIEND.HANDLE_REQUEST(requestId), {
-        action: "REJECT",
-      })
-      .then(async (response: any) => {
-        if (response.status === "success") {
-          await fetchFriendData();
-          toast.success("Đã từ chối lời mời kết bạn");
-        }
-      })
-      .catch((error) => {
-        console.error("Error rejecting friend request:", error);
-        toast.error("Không thể từ chối lời mời kết bạn");
-      })
-      .finally(() => {
-        setPendingRequestAction(null);
-      });
+    try {
+      dispatch(rejectFriendRequest(requestId) as any)
+        .unwrap();
+      toast.success("Đã từ chối lời mời kết bạn");
+      fetchFriendData();
+    } catch (error) {
+      console.error("Error rejecting friend request:", error);
+      toast.error("Không thể từ chối lời mời kết bạn");
+ 
+    } finally {
+      setPendingRequestAction(null);
+    }
   };
 
   const handleProfileOpen = (id: string) => {
@@ -366,63 +352,79 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="h-full w-full max-w-[90vw] max-h-[90vh] md:max-w-6xl overflow-hidden jsutify-start block">
-        <DialogHeader className="flex flex-row items-center justify-between">
-          <DialogTitle className="flex items-center gap-4">
-            <span>Bạn bè</span>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={fetchFriendData}
-              disabled={isFetching}
-              title="Làm mới danh sách"
-            >
-              {isFetching ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="lucide lucide-refresh-cw"
-                >
-                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-                  <path d="M21 3v5h-5" />
-                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-                  <path d="M3 21v-5h5" />
-                </svg>
-              )}
-            </Button>
+      <DialogContent className="h-full w-full max-w-[90vw] max-h-[90vh] md:max-w-6xl overflow-hidden flex flex-col jsutify-start">
+        {/* Header cố định */}
+        <DialogHeader className="shrink-0">
+          <DialogTitle className="flex items-center justify-between w-full px-4 py-2">
+            <div className="flex items-center gap-4">
+              <span>Bạn bè</span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={fetchFriendData}
+                disabled={isFetching}
+                title="Làm mới danh sách"
+              >
+                {isFetching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="lucide lucide-refresh-cw"
+                  >
+                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                    <path d="M21 3v5h-5" />
+                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                    <path d="M3 21v-5h5" />
+                  </svg>
+                )}
+              </Button>
+            </div>
           </DialogTitle>
-
         </DialogHeader>
-        <Tabs
-          defaultValue="friends"
-          className="flex-1 flex flex-col overflow-visible mt-4"
-        >
-          <TabsList className="w-full flex justify-start gap-2 mb-2 border-b">
-            <TabsTrigger value="friends">
-              <Users className="w-4 h-4 mr-1" />
-              Bạn bè
-            </TabsTrigger>
-            <TabsTrigger value="requests">
-              <UserPlus className="w-4 h-4 mr-1" />
-              Lời mời kết bạn
-            </TabsTrigger>
-            <TabsTrigger value="sent">
-              <Clock className="w-4 h-4 mr-1" />
-              Đã gửi
-            </TabsTrigger>
-          </TabsList>
 
-          <div className="flex-1">
+        {/* Scrollable content */}
+        <ScrollArea className="flex-1 overflow-auto px-4 py-2">
+          <Tabs defaultValue="friends" className="flex flex-col px-2 pb-2">
+            <TabsList className="w-full flex justify-start gap-2 mb-2 border-b">
+              <TabsTrigger value="friends">
+                <Users className="w-4 h-4 mr-1" />
+                Bạn bè
+                {friend.length > 0 && (
+                  <span className="absolute top-0 right-0 flex items-center justify-center w-4 h-4 text-xs font-semibold bg-gray-200 rounded-full">
+                    {friend.length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="requests">
+                <UserPlus className="w-4 h-4 mr-1" />
+                Lời mời kết bạn
+                {received.length > 0 && (
+                  <span className="absolute top-0 right-0 flex items-center justify-center w-4 h-4 text-xs font-semibold text-white bg-red-500 rounded-full">
+                    {received.length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="sent">
+                <Clock className="w-4 h-4 mr-1" />
+                Đã gửi
+                {requested.length > 0 && (
+                  <span className="absolute top-0 right-0 flex items-center justify-center w-4 h-4 text-xs font-semibold text-white bg-red-500 rounded-full">
+                    {requested.length}
+                  </span>
+                )}
+              </TabsTrigger>
+            </TabsList>
 
+            {/* Tab: Friends */}
             <TabsContent value="friends">
               {isFetching ? (
                 <LoadingState message="Đang tải danh sách bạn bè..." />
@@ -450,6 +452,7 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
               )}
             </TabsContent>
 
+            {/* Tab: Requests */}
             <TabsContent value="requests">
               {isFetching ? (
                 <LoadingState message="Đang tải lời mời kết bạn..." />
@@ -468,6 +471,7 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
                         onReject={handleRejectRequest}
                         isHandling={pendingRequestAction === request.id}
                         onModalOpen={handleProfileOpen}
+
                       />
                     ))
                   ) : (
@@ -479,6 +483,7 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
               )}
             </TabsContent>
 
+            {/* Tab: Sent */}
             <TabsContent value="sent">
               {isFetching ? (
                 <LoadingState message="Đang tải lời mời đã gửi..." />
@@ -505,8 +510,8 @@ const FriendDialog: React.FC<FriendDialogProps> = ({
                 </div>
               )}
             </TabsContent>
-          </div>
-        </Tabs>
+          </Tabs>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

@@ -1,6 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { ENDPOINTS } from "@/service/api.endpoint";
 import apiService from "@/service/api.service";
 import {
@@ -58,13 +59,16 @@ const Otp = () => {
         One step away from something great
       </h1>
 
-      <Input
-        type="number"
-        startIcon={Key}
-        placeholder="OTP"
-        value={otp}
-        onChange={(e) => setOtp(e.target.value)}
-      />
+      <InputOTP maxLength={6} onChange={setOtp}>
+        <InputOTPGroup>
+          <InputOTPSlot index={0} />
+          <InputOTPSlot index={1} />
+          <InputOTPSlot index={2} />
+          <InputOTPSlot index={3} />
+          <InputOTPSlot index={4} />
+          <InputOTPSlot index={5} />
+        </InputOTPGroup>
+      </InputOTP>
 
       <Button className="w-full" onClick={handleVerifyOtp} disabled={loading}>
         {loading ? "VERIFYING..." : "VERIFY OTP"}

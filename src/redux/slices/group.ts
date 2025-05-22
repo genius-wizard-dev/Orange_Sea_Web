@@ -1,6 +1,8 @@
 import { Group } from "@/types/group";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { fetchGroupList } from "../thunks/group";
+import { accumulateMetadata } from "next/dist/lib/metadata/resolve-metadata";
+import { stat } from "fs";
 
 interface GroupState {
 	groups: Group[];
@@ -11,8 +13,22 @@ interface GroupState {
 const initialState: GroupState = {
 	groups: [],
 	activeGroupId: null,
-	state: "idle",
+	state: "loading",
 };
+
+function sortGroups(groups: Group[]): Group[] {
+	return [...groups].sort((a, b) => {
+		const aUnread = (a.unreadCount || 0) > 0;
+		const bUnread = (b.unreadCount || 0) > 0;
+
+		if (aUnread && !bUnread) return -1;
+		if (!aUnread && bUnread) return 1;
+
+		const aTime = new Date(a.lastMessage?.createdAt || 0).getTime();
+		const bTime = new Date(b.lastMessage?.createdAt || 0).getTime();
+		return bTime - aTime;
+	});
+}
 
 const groupSlice = createSlice({
 	name: "group",
@@ -23,7 +39,8 @@ const groupSlice = createSlice({
 		},
 
 		addGroup: (state, action: PayloadAction<Group>) => {
-			state.groups.push(action.payload);
+			// add to the beginning of the array
+			state.groups.unshift(action.payload);
 		},
 
 		removeGroup: (state, action: PayloadAction<string>) => {
@@ -41,6 +58,7 @@ const groupSlice = createSlice({
 			if (group) {
 				group.unreadCount = action.payload.count;
 			}
+			state.groups = sortGroups(state.groups);
 		},
 		setUnreadCountsToGroups: (
 			state,
@@ -52,7 +70,20 @@ const groupSlice = createSlice({
 					group.unreadCount = count;
 				}
 			}
+			state.groups = sortGroups(state.groups);
 		},
+
+		plusUnReadCountToGroup: (
+			state,
+			action: PayloadAction<{ groupId: string; count: number }>
+		) => {
+			const group = state.groups.find(g => g.id === action.payload.groupId);
+			if (group) {
+				group.unreadCount = (group.unreadCount || 0) + action.payload.count;
+			}
+			state.groups = sortGroups(state.groups);
+		},
+
 		updateLastMessage: (
 			state,
 			action: PayloadAction<{
@@ -64,7 +95,7 @@ const groupSlice = createSlice({
 			const group = state.groups.find((g) => g.id === action.payload.groupId);
 			if (!group) return;
 
-			if(action.payload.isRecalled) {
+			if (action.payload.isRecalled) {
 				if (group.lastMessage) {
 					group.lastMessage.isRecalled = action.payload.isRecalled;
 				}
@@ -83,6 +114,7 @@ const groupSlice = createSlice({
 					senderId: message.sender ? message.sender.id : message.senderId,
 				};
 			}
+			state.groups = sortGroups(state.groups);
 		},
 
 		updateParticipants: (
@@ -94,34 +126,44 @@ const groupSlice = createSlice({
 				group.participants = action.payload.participants;
 			}
 		},
-		updateGroupName: (state, action: PayloadAction<{ groupId: string; name: string }>) => {
-			const group = state.groups.find((g) => g.id === action.payload.groupId);
+		updateGroupInfo: (state, action) => {
+			const group = state.groups.find(g => g.id === action.payload.groupId);
 			if (group) {
 				group.name = action.payload.name;
+				if (action.payload.avatarUrl) {
+					group.avatarUrl = action.payload.avatarUrl;
+				}
 			}
 		},
 
 		addMember: (state, action: PayloadAction<{ groupId: string; member: any }>) => {
 			const group = state.groups.find((g) => g.id === action.payload.groupId);
 			if (group) {
-				if (group.participants) {
-					group.participants.push(action.payload.member);
-				}
+				(group.participants ??= []).push(action.payload.member);
 			}
 		},
-		removeMember: (state, action: PayloadAction<{ groupId: string; memberId: string }>) => {
+		removeMember: (state, action: PayloadAction<{ groupId: string; member: any }>) => {
 			const group = state.groups.find((g) => g.id === action.payload.groupId);
 			if (group) {
-				if (group.participants) {
-					group.participants = group.participants.filter((m) => m.id !== action.payload.memberId);
-				}
+				group.participants = group.participants?.filter(
+					(member) => member.id !== action.payload.member.id
+				);
+			}
+		},
+		clearLastMessage: (state, action: PayloadAction<{ groupId: string }>) => {
+			const group = state.groups.find((g) => g.id === action.payload.groupId);
+			console.log("clearLastMessage", action.payload.groupId);
+			if (group && group.lastMessage) {
+				group.lastMessage.content = "Tin nhắn đã được xóa";
 			}
 		},
 	},
 	extraReducers: (builder) => {
 		builder
-			.addCase(fetchGroupList.fulfilled, (state, action: PayloadAction<Group[]>) => {
+			.addCase(fetchGroupList.fulfilled, (state, action) => {
+				console.log("fetchGroupList", action.payload);
 				state.groups = action.payload;
+				state.activeGroupId = action.payload[0]?.id ?? null;
 				state.state = "succeeded";
 			})
 			.addCase(fetchGroupList.pending, (state) => {
@@ -144,9 +186,11 @@ export const {
 	setUnreadCountsToGroups,
 	updateLastMessage,
 	updateParticipants,
-	updateGroupName,
+	updateGroupInfo,
 	addMember,
 	removeMember,
+	clearLastMessage,
+	plusUnReadCountToGroup,
 } = groupSlice.actions;
 
 export default groupSlice.reducer;

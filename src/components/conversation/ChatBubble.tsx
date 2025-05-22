@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { CheckCheck, Check, Clock, FileText, Download } from "lucide-react";
+import { CheckCheck, Check, Clock, FileText, Download, Edit } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	DropdownMenu,
@@ -9,6 +9,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreVertical } from "lucide-react";
 import { Message, MessageType } from "@/types/message";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { useMemo, useState } from "react";
+import { MediaViewerDialog } from "./MediaViewerDialog";
 
 type MessageStatus = "sending" | "sent" | "seen";
 
@@ -38,7 +41,10 @@ export const formatMessageTime = (time: string): string => {
 	const diffMs = now.getTime() - date.getTime();
 	const diffMinutes = Math.floor(diffMs / 60000);
 	const diffHours = Math.floor(diffMinutes / 60);
-	const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+	const diffDays = Math.floor(diffHours / 24);
+	const diffWeeks = Math.floor(diffDays / 7);
+	const diffMonths = now.getMonth() - date.getMonth() + (now.getFullYear() - date.getFullYear()) * 12;
+	const diffYears = now.getFullYear() - date.getFullYear();
 
 	const hour = date.getHours().toString().padStart(2, "0");
 	const minute = date.getMinutes().toString().padStart(2, "0");
@@ -48,22 +54,18 @@ export const formatMessageTime = (time: string): string => {
 	if (diffHours < 24 && date.toDateString() === now.toDateString()) {
 		return `${diffHours} giờ trước`;
 	}
-
-	const yesterday = new Date();
-	yesterday.setDate(now.getDate() - 1);
-
-	if (date.toDateString() === now.toDateString()) {
-		return `Hôm nay, ${hour}:${minute}`;
+	if (diffDays < 7) return `${diffDays} ngày trước, ${hour}:${minute}`;
+	if (diffWeeks < 4) return `${diffWeeks} tuần trước, ${hour}:${minute}`;
+	if (diffMonths < 12) {
+		const day = date.getDate();
+		const month = date.getMonth() + 1;
+		return `${day} tháng ${month}`;
 	}
-	if (date.toDateString() === yesterday.toDateString()) {
-		return `Hôm qua, ${hour}:${minute}`;
-	}
-
-	const day = date.getDate().toString().padStart(2, "0");
-	const month = (date.getMonth() + 1).toString().padStart(2, "0");
+	const month = date.getMonth() + 1;
 	const year = date.getFullYear();
-	return `${day}/${month}/${year}, ${hour}:${minute}`;
+	return `${month} năm ${year}`;
 };
+
 
 // function ImageGallery({ images }: { images: string[] }) {
 // 	const visibleImages = Array.isArray(images) ? images.slice(0, 4) : [];
@@ -101,6 +103,8 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 	onDelete,
 }) => {
 
+	const [isMediaDialogOpen, setIsMediaDialogOpen] = useState(false);
+
 	const bubbleColor =
 		data.isRecalled
 			? "bg-gray-200 text-gray-500 italic"
@@ -116,7 +120,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 		? "rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl rounded-br-md"
 		: "rounded-tr-2xl rounded-tl-2xl rounded-bl-md rounded-br-2xl";
 
-	const renderStatusIcon = () => {
+	const RenderStatusIcon = () => {
 		if (!isOwn || data.isRecalled) return null;
 		switch (status) {
 			case "sending":
@@ -130,23 +134,71 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 		}
 	};
 
+	// support shift + enter in data.content
+	const content = useMemo(() => {
+		if (!data.content) return "";
+		return data.content.split("\n").map((line, i) => (
+			<span key={i} className="whitespace-pre-wrap">
+				{i > 0 && <br />}
+				{line}
+			</span>
+		));
+	}, [data.content]);
+
 	const renderContent = () => {
 		if (data.isRecalled) {
 			return <span>Tin nhắn đã được thu hồi</span>;
 		}
 
 		if (data.type === MessageType.TEXT) {
-			return <div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, corner)}>{data.content}</div>;
+			return <div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, corner)}>{content}</div>;
 		}
-
 		if (data.type === MessageType.IMAGE) {
 			return (
 				<>
-					{data.content && (
-						<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, cornerMedia)}>{data.content}</div>
+					{content && (
+						<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, cornerMedia)}>{content}</div>
 					)}
 					<div className="flex flex-col gap-1">
-						<img src={data.fileUrl ?? undefined} alt="image" className="rounded-lg max-w-[240px] max-h-[180px] object-cover" />
+						<img 
+							src={data.fileUrl ?? undefined} 
+							alt="image" 
+							className="rounded-lg max-w-[240px] max-h-[180px] object-cover cursor-pointer" 
+							onClick={() => setIsMediaDialogOpen(true)} 
+						/>
+					</div>
+				</>
+			);
+		}
+		
+		if (data.type === MessageType.MULTI_IMAGE && data.fileUrls && data.fileUrls.length > 0) {
+			return (
+				<>
+					{content && (
+						<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, cornerMedia)}>{content}</div>
+					)}
+					<div className="grid grid-cols-2 gap-1 max-w-[240px]">
+						{data.fileUrls.slice(0, 4).map((url, index) => (
+							<div 
+								key={index} 
+								className={cn(
+									"relative cursor-pointer",
+									data.fileUrls && data.fileUrls.length === 3 && index === 0 ? "col-span-2" : ""
+								)}
+								onClick={() => setIsMediaDialogOpen(true)}
+							>
+								<img 
+									src={url} 
+									alt={`image-${index}`} 
+									className="rounded-lg w-full h-[90px] object-cover" 
+								/>
+								{index === 3 && data.fileUrls && data.fileUrls.length > 4 && (
+									<div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+										<span className="text-white text-lg font-semibold">+{data.fileUrls.length - 4}</span>
+									</div>
+								)}
+							</div>
+						))}
 					</div>
 				</>
 			);
@@ -155,8 +207,8 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 		if (data.type === MessageType.VIDEO) {
 			return (
 				<>
-					{data.content && (
-						<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, cornerMedia)}>{data.content}</div>
+					{content && (
+						<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, cornerMedia)}>{content}</div>
 					)}
 					<video controls className="rounded-lg max-w-[240px] max-h-[180px]">
 						<source src={data.fileUrl ?? undefined} />
@@ -169,8 +221,8 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 		if (data.type === MessageType.RAW) {
 			return (
 				<>
-					{data.content && (
-						<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, cornerMedia)}>{data.content}</div>
+					{content && (
+						<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, cornerMedia)}>{content}</div>
 					)}
 					<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, corner)}>
 						<div className="flex items-center gap-2">
@@ -206,13 +258,26 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 
 			<div className="relative flex flex-col gap-1 group/message">
 
+
+				{/* Display name when isGroup is true and isOwn is true */}
+				{!isOwn && (
+					<span className="text-xs text-gray-500 font-semibold">
+						{data.sender.name}
+					</span>
+				)}
+
+				{/* Message content */}
+
 				{renderContent()}
 
 				<div className={cn("flex items-center text-xs text-gray-400 mt-1",
 					isOwn ? "justify-end" : "justify-start",
 				)}>
+					{data.editedAt && (
+						<span className="ml-2 italic text-gray-400 text-xs"><Edit /></span>
+					)}
 					<span>{formatMessageTime(data.createdAt)}</span>
-					{renderStatusIcon()}
+					<RenderStatusIcon />
 				</div>
 
 				{/* Dropdown menu */}
@@ -233,20 +298,40 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 									<DropdownMenuItem onClick={onRecall}>
 										Thu hồi
 									</DropdownMenuItem>
-									<DropdownMenuItem onClick={onEdit}>
+									<DropdownMenuItem onClick={() => {
+										requestAnimationFrame(() => {
+											if (onEdit) onEdit();
+										});
+									}}>
 										Chỉnh sửa
 									</DropdownMenuItem>
 								</>
 							)}
-							<DropdownMenuItem onClick={onForward}>
+							<DropdownMenuItem
+								onClick={() => {
+									requestAnimationFrame(() => {
+										if (onForward) onForward();
+									});
+								}}
+							>
 								Chuyển tiếp
 							</DropdownMenuItem>
-							<DropdownMenuItem onClick={onDelete}>
+							<DropdownMenuItem
+								onClick={onDelete}
+							>
 								<span className="text-red-500">Xoá</span>
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
-				</div>
+				</div>				{/* Media Viewer Dialog */}
+				<MediaViewerDialog
+					isOpen={isMediaDialogOpen}
+					onClose={() => setIsMediaDialogOpen(false)}
+					mediaType={data.type}
+					mediaUrl={data.fileUrl}
+					mediaUrls={data.fileUrls}
+					mediaContent={data.content}
+				/>
 			</div>
 		</div>
 	);

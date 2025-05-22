@@ -1,15 +1,17 @@
+import { getSocket } from "@/lib/socket";
 import { ENDPOINTS } from "@/service/api.endpoint";
 import apiService from "@/service/api.service";
 import { Friend, FriendPending } from "@/types/friend";
 import { createAsyncThunk } from "@reduxjs/toolkit";
+
 import { z } from "zod";
 
 export const getFriend = createAsyncThunk(
   "friend/getFriend",
   async (_, { rejectWithValue }) => {
     try {
-      const result = await apiService.get<Friend[]>(ENDPOINTS.FRIEND.BASE);
-      return result;
+      const result: any = await apiService.get<Friend[]>(ENDPOINTS.FRIEND.BASE);
+      return result.data;
     } catch (error) {
       if (error instanceof z.ZodError) {
         return rejectWithValue(error.errors);
@@ -23,10 +25,10 @@ export const getRequested = createAsyncThunk(
   "friend/getRequested",
   async (_, { rejectWithValue }) => {
     try {
-      const result = await apiService.get<FriendPending[]>(
+      const result: any = await apiService.get<FriendPending[]>(
         ENDPOINTS.FRIEND.REQUESTS_SENT
       );
-      return result;
+      return result.data;
     } catch (error) {
       if (error instanceof z.ZodError) {
         return rejectWithValue(error.errors);
@@ -40,10 +42,10 @@ export const getReceived = createAsyncThunk(
   "friend/getReceived",
   async (_, { rejectWithValue }) => {
     try {
-      const result = await apiServicoe.get<FriendPending[]>(
+      const result: any = await apiService.get<FriendPending[]>(
         ENDPOINTS.FRIEND.REQUESTS_RECEIVED
       );
-      return result;
+      return result.data;
     } catch (error) {
       if (error instanceof z.ZodError) {
         return rejectWithValue(error.errors);
@@ -61,7 +63,16 @@ export const sendFriendRequest = createAsyncThunk<
   "friend/sendRequest",
   async (receiverId, { rejectWithValue }) => {
     try {
-      await apiService.post(ENDPOINTS.FRIEND.SEND_REQUEST, { receiverId });
+      const res: any = await apiService.post(ENDPOINTS.FRIEND.SEND_REQUEST, { receiverId });
+      if(res.statusCode !== 200) {
+        return rejectWithValue(res.message);
+      } else {
+        const socket = getSocket();
+        console.log("data send friend request", res);
+        
+        socket.emit('handleFriend', { friendShipId: res.data.friendshipId});
+      }
+
     } catch (err: any) {
       if (err instanceof z.ZodError) return rejectWithValue(err.errors);
       return rejectWithValue(err.message);
@@ -77,9 +88,17 @@ export const acceptFriendRequest = createAsyncThunk<
   "friend/acceptRequest",
   async (requestId, { rejectWithValue }) => {
     try {
-      await apiService.put(ENDPOINTS.FRIEND.HANDLE_REQUEST(requestId), {
+      const res: any = await apiService.put(ENDPOINTS.FRIEND.HANDLE_REQUEST(requestId), {
         action: "ACCEPT",
       });
+      if(res.statusCode !== 200) {
+        return rejectWithValue(res.message);
+      } else {
+        const socket = getSocket();
+        console.log("data accept friend request", res);
+        
+        socket.emit('handleFriend', { friendShipId: res.data.friendshipId});
+      }
     } catch (err: any) {
       return rejectWithValue(err.message);
     }
@@ -94,9 +113,17 @@ export const rejectFriendRequest = createAsyncThunk<
   "friend/rejectRequest",
   async (requestId, { rejectWithValue }) => {
     try {
-      await apiService.put(ENDPOINTS.FRIEND.HANDLE_REQUEST(requestId), {
+      const res: any = await apiService.put(ENDPOINTS.FRIEND.HANDLE_REQUEST(requestId), {
         action: "REJECT",
       });
+      if(res.statusCode !== 200) {
+        return rejectWithValue(res.message);
+      } else {
+        const socket = getSocket();
+        console.log("data reject friend request", res);
+        
+        socket.emit('handleFriend', { friendShipId: res.data.friendshipId});
+      }
     } catch (err: any) {
       return rejectWithValue(err.message);
     }
@@ -111,7 +138,13 @@ export const cancelFriendRequest = createAsyncThunk<
   "friend/cancelRequest",
   async (requestId, { rejectWithValue }) => {
     try {
-      await apiService.put(ENDPOINTS.FRIEND.REMOVE_FRIEND(requestId));
+      const res: any = await apiService.put(ENDPOINTS.FRIEND.REMOVE_FRIEND(requestId));
+      if(res.statusCode !== 200) {
+        return rejectWithValue(res.message);
+      } else {
+        const socket = getSocket();
+        console.log("data cancel friend request", res);
+      }
     } catch (err: any) {
       return rejectWithValue(err.message);
     }

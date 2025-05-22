@@ -111,7 +111,7 @@ class ApiClient {
 
               if (
                 refreshResponse.data &&
-                refreshResponse.data.status === "success" &&
+                refreshResponse.data.statusCode === 200 &&
                 refreshResponse.data.data
               ) {
                 // Lưu token mới

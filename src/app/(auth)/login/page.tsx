@@ -42,20 +42,20 @@ const LoginPage: React.FC = () => {
         ENDPOINTS.AUTH.LOGIN,
         loginData
       );
-      if (result.status === "success" && result.data) {
+      if (result.statusCode === 200 && result.data) {
         setAccessToken(result.data?.access_token);
         setRefreshToken(result.data.refresh_token);
-        const profileRes: ProfileResponse = await dispatch(profile()).unwrap();
-        if (profileRes.status === "success") {
-          toast.success("Đăng nhập thành công!");
-          setLoginData({
-            username: "",
-            password: "",
-          });
-          window.location.href = "/";
-        } else {
-          toast.error(profileRes.message || "Đăng nhập thất bại!");
-        }
+        // const profileRes: ProfileResponse = await dispatch(profile()).unwrap();
+        toast.success("Đăng nhập thành công!");
+        // if (profileRes.status === "success") {
+        //   setLoginData({
+        //     username: "",
+        //     password: "",
+        //   });
+        window.location.href = "/";
+        // } else {
+        //   toast.error(profileRes.message || "Đăng nhập thất bại!");
+        // }
       } else {
         // Hiển thị chính xác message lỗi trả về từ API
         toast.error(result.message || "Đăng nhập thất bại!");
