@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { CheckCheck, Check, Clock, FileText, Download, Edit } from "lucide-react";
+import { CheckCheck, Check, Clock, FileText, Download, Edit, Eye } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	DropdownMenu,
@@ -159,18 +159,24 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 					{content && (
 						<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, cornerMedia)}>{content}</div>
 					)}
-					<div className="flex flex-col gap-1">
-						<img 
-							src={data.fileUrl ?? undefined} 
-							alt="image" 
-							className="rounded-lg max-w-[240px] max-h-[180px] object-cover cursor-pointer" 
-							onClick={() => setIsMediaDialogOpen(true)} 
-						/>
+					<div className={cn(
+						"flex flex-col gap-1 w-[180px] h-[180px] bg-cover bg-center rounded-lg cursor-pointer relative"
+					)}
+						style={{ backgroundImage: `url(${data.fileUrl})` }}
+						onClick={() => setIsMediaDialogOpen(true)}
+					>
+						{/* create view overlay for image only show on hover */}
+						<div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg opacity-0 hover:opacity-100 transition-opacity">
+							<span className="text-white text-lg font-semibold">
+								<Eye className="w-5 h-5 inline-block mr-1" />
+								Xem ảnh
+							</span>
+						</div>
 					</div>
 				</>
 			);
 		}
-		
+
 		if (data.type === MessageType.MULTI_IMAGE && data.fileUrls && data.fileUrls.length > 0) {
 			return (
 				<>
@@ -179,18 +185,18 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 					)}
 					<div className="grid grid-cols-2 gap-1 max-w-[240px]">
 						{data.fileUrls.slice(0, 4).map((url, index) => (
-							<div 
-								key={index} 
+							<div
+								key={index}
 								className={cn(
 									"relative cursor-pointer",
 									data.fileUrls && data.fileUrls.length === 3 && index === 0 ? "col-span-2" : ""
 								)}
 								onClick={() => setIsMediaDialogOpen(true)}
 							>
-								<img 
-									src={url} 
-									alt={`image-${index}`} 
-									className="rounded-lg w-full h-[90px] object-cover" 
+								<img
+									src={url}
+									alt={`image-${index}`}
+									className="rounded-lg w-full h-[90px] object-cover"
 								/>
 								{index === 3 && data.fileUrls && data.fileUrls.length > 4 && (
 									<div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
@@ -210,7 +216,9 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 					{content && (
 						<div className={cn("max-w-xs px-4 py-2 text-sm", bubbleColor, cornerMedia)}>{content}</div>
 					)}
-					<video controls className="rounded-lg max-w-[240px] max-h-[180px]">
+					<video controls className="rounded-lg max-w-full max-h-[180px]"
+						onClick={() => setIsMediaDialogOpen(true)}
+					>
 						<source src={data.fileUrl ?? undefined} />
 						Trình duyệt của bạn không hỗ trợ video tag.
 					</video>
