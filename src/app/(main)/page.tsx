@@ -146,7 +146,6 @@ const Page: React.FC = () => {
 	// Register socket connection and listen to events
 	useEffect(() => {
 
-
 		if (!userProfile?.id) return;
 
 		socket.on("connect", async () => {
@@ -258,9 +257,6 @@ const Page: React.FC = () => {
 
 		});
 
-
-
-
 		socket.on("messageEdited", (data) => {
 			const { messageId, groupId, editedMessage, wasLastMessage } = data;
 			console.log("📩 Tin nhắn đã được chỉnh sửa:", data);
@@ -291,10 +287,6 @@ const Page: React.FC = () => {
 			}
 		});
 
-		// client.emit('friendStatus', {
-		//   online: onlineFriends,
-		//   offline: offlineFriends,
-		// });
 		socket.on("friendStatus", (data) => {
 			dispatch(setOnlineUsers({ onlineUsers: data.online }));
 			console.log("🚀 Danh sách bạn bè trực tuyến:", data.online);
@@ -343,11 +335,6 @@ const Page: React.FC = () => {
 		socket.on("handleGroup", (data) => {
 			const { groupId, group } = data;
 			console.log("🚀 Cập nhật nhóm:", data);
-
-			// // if (groupId === activeGroupId) {
-			// // 	dispatch(setActiveGroup(groupId));
-			// // }
-			// dispatch(setGroups(group));
 		});
 
 		socket.on("handleFriend", (data) => {
@@ -406,9 +393,7 @@ const Page: React.FC = () => {
 					groupId: checkGroupLastMessage.id,
 				}));
 			}
-
 		});
-
 	}, [])
 
 

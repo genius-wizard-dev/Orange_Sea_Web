@@ -138,13 +138,14 @@ export const cancelFriendRequest = createAsyncThunk<
   "friend/cancelRequest",
   async (requestId, { rejectWithValue }) => {
     try {
-      const res: any = await apiService.put(ENDPOINTS.FRIEND.REMOVE_FRIEND(requestId));
-      if(res.statusCode !== 200) {
-        return rejectWithValue(res.message);
-      } else {
-        const socket = getSocket();
-        console.log("data cancel friend request", res);
-      }
+      const socket = getSocket();
+      socket.emit("deleteFriend", {
+        friendShipId: requestId
+      }, (response: any) => {
+        if(!response.success) {
+          return rejectWithValue(response.message)
+        }
+      });
     } catch (err: any) {
       return rejectWithValue(err.message);
     }
