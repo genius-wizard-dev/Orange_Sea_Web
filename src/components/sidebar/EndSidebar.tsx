@@ -416,7 +416,7 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
 
     const toggleGroupOptions = () => {
         setShowGroupOptions(!showGroupOptions);
-    };    
+    };
 
     const FilesView = () => (
         <div className={cn(
@@ -647,9 +647,9 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                 <div className="flex flex-col items-center mb-6">
                     <div className="w-28 h-28 rounded-full overflow-hidden shadow-lg mb-4 border-2 border-orange-200 p-1 bg-gradient-to-br from-orange-50 to-orange-100">
                         <Avatar className="w-full h-full rounded-full overflow-hidden">
-                            <AvatarImage 
-                                src={activeGroup?.isGroup ? activeGroup.avatarUrl : activeGroup?.participants?.[0].avatarUrl} 
-                                alt="Avatar" 
+                            <AvatarImage
+                                src={activeGroup?.isGroup ? activeGroup.avatarUrl : activeGroup?.participants?.[0].avatarUrl}
+                                alt="Avatar"
                                 className="object-cover"
                             />
                             <AvatarFallback className="">
@@ -662,7 +662,7 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                             </AvatarFallback>
                         </Avatar>
                     </div>
-                    
+
                     <div className="flex items-center gap-2 mb-3 relative">
                         <h2 className="text-xl font-semibold text-center">
                             <span className="font-semibold">{activeGroup?.isGroup ? activeGroup.name : activeGroup?.participants?.[0].name}</span>
@@ -676,12 +676,12 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                             </button>
                         )}
                     </div>
-                    
+
                     <div className="flex gap-3 mt-1">
                         {activeGroup?.isGroup === true && (
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
+                            <Button
+                                variant="outline"
+                                size="sm"
                                 className="flex items-center gap-2 bg-orange-50 hover:bg-orange-100 text-orange-600 border-orange-200 hover:border-orange-300 transition-all rounded-xl"
                                 onClick={() => handleOpenInviteMemberDialog(activeGroup!)}
                             >
@@ -689,7 +689,7 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                                 <span>Thêm thành viên</span>
                             </Button>
                         )}
-                        
+
                         {selectedGroup && (
                             <InviteMemberConversationDialog
                                 open={isInviteMemberOpen}
@@ -815,7 +815,7 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                                     exit={{ opacity: 0, height: 0 }}
                                     transition={{ duration: 0.2 }}
                                 >
-                                    <ScrollArea className="max-h-48">
+                                    <ScrollArea className="max-h-52 overflow-y-auto"> 
                                         <ul>
                                             {activeGroup?.participants?.length ? (
                                                 activeGroup.participants.map((member) => (
