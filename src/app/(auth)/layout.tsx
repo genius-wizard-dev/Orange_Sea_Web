@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Image from "next/image";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -13,7 +14,7 @@ export default function AuthLayout({
   return <div className="w-screen h-screen flex items-center justify-center">
     <div className="mx-auto bg-white px-6 py-3 border-2 border-b-4 border-primary rounded-md max-w-[400px] w-full">
       <div className="flex items-center justify-center mb-4 mt-3">
-        <img src="/images/OrangeSEA.png" alt="Logo" className="w-[200px]" />
+        <Image src="/images/OrangeSEA.png" alt="Logo" className="w-[200px]" />
       </div>
       {children}
     </div>

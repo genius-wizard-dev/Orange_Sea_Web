@@ -1,23 +1,16 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AppDispatch } from "@/redux/store";
-import { profile } from "@/redux/thunks/profile";
 import { ENDPOINTS } from "@/service/api.endpoint";
 import apiService from "@/service/api.service";
 import { LoginRequest, LoginResponse } from "@/types/auth.login";
-import { ProfileResponse } from "@/types/profile";
 import { setAccessToken, setRefreshToken } from "@/utils/token";
 import { User } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import React, { useState } from "react";
-import { useDispatch } from "react-redux";
 import { toast } from "sonner";
 
 const LoginPage: React.FC = () => {
-  const router = useRouter();
-  const dispatch = useDispatch<AppDispatch>();
   const [loading, setLoading] = useState<boolean>(false);
 
   const [loginData, setLoginData] = useState<LoginRequest>({

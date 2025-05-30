@@ -9,7 +9,7 @@ export const profile = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const res = await apiService.get<ProfileResponse>(ENDPOINTS.PROFILE.ME);
-      if (res.status === "fail") {
+      if (res.statusCode === 400) {
         throw new Error(`Profile fetch failed with error: ${res.message}`);
       }
       return res;
@@ -27,7 +27,7 @@ export const updateProfile = createAsyncThunk(
   async (data: FormData | UpdateProfileInput, { rejectWithValue }) => {
     try {
       const res = await apiService.put<ProfileResponse>(ENDPOINTS.PROFILE.ME, data);
-      if (res.status === "fail") {
+      if (res.statusCode === 400) {
         throw new Error(`Profile update failed with error: ${res.message}`);
       }
       return res;

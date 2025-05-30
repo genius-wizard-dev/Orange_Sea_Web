@@ -1,6 +1,5 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { ENDPOINTS } from "@/service/api.endpoint";
 import apiService from "@/service/api.service";
@@ -9,7 +8,6 @@ import {
   removeEmailFromCookies,
   removeRegisterKeyFromCookies,
 } from "@/utils/token";
-import { Key } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -46,8 +44,18 @@ const Otp = () => {
 
       toast.success("OTP verified successfully");
       router.push("/login");
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to verify OTP");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error && 'response' in error && 
+        typeof error.response === 'object' && 
+        error.response !== null && 
+        'data' in error.response && 
+        typeof error.response.data === 'object' && 
+        error.response.data !== null && 
+        'message' in error.response.data && 
+        typeof error.response.data.message === 'string' 
+          ? error.response.data.message 
+          : "Failed to verify OTP";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

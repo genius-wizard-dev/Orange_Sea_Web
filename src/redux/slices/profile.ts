@@ -27,7 +27,7 @@ const profileSlice = createSlice({
         profile.fulfilled,
         (state, action: PayloadAction<ProfileResponse>) => {
           state.status = "succeeded";
-          state.profile = action.payload.data;
+          state.profile = action.payload.data as Profile; 
         }
       )
       .addCase(profile.rejected, (state, action) => {
