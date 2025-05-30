@@ -58,7 +58,7 @@ const ConfirmReset = () => {
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-semibold text-center mb-5 w-full">
-        Reset Your Password
+        Đặt lại mật khẩu
       </h1>
       <form onSubmit={handleSubmit} className="flex gap-4 flex-col">
         {error && <div className="text-red-500">{error}</div>}
@@ -66,7 +66,7 @@ const ConfirmReset = () => {
         <Input
           type="password"
           name="password"
-          placeholder="New Password"
+          placeholder="Mật khẩu mới"
           onChange={handleInputChange}
           value={passwordData.password}
           required
@@ -75,7 +75,7 @@ const ConfirmReset = () => {
         <Input
           type="password"
           name="confirmPassword"
-          placeholder="Confirm Password"
+          placeholder="Xác nhận mật khẩu mới"
           value={passwordData.confirmPassword}
           onChange={handleInputChange}
           required

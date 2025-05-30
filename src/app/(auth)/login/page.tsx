@@ -77,12 +77,12 @@ const LoginPage: React.FC = () => {
   return (
     <form onSubmit={handleSubmit} className="flex gap-4 flex-col pb-4">
       <h1 className="text-xl font-semibold text-center mb-5 w-full">
-        Sign in and start using awesome stuff
+        Đăng nhập vào tài khoản của bạn
       </h1>
 
       <Input
         type="text"
-        placeholder="Username"
+        placeholder="Tên người dùng"
         startIcon={User}
         name="username"
         value={loginData.username}
@@ -91,7 +91,7 @@ const LoginPage: React.FC = () => {
       />
       <Input
         type="password"
-        placeholder="Password"
+        placeholder="Mật khẩu"
         name="password"
         value={loginData.password}
         onChange={handleInputChange}
@@ -102,7 +102,7 @@ const LoginPage: React.FC = () => {
           href="/reset"
           className="text-sm text-primary hover:underline ml-auto"
         >
-          Forgot password?
+          Quên mật khẩukhẩu
         </Link>
       </div>
       <Button
@@ -112,10 +112,10 @@ const LoginPage: React.FC = () => {
       >
         {loading ? "ĐANG ĐĂNG NHẬP..." : "ĐĂNG NHẬP"}
       </Button>
-      <span className="block my-1 text-center text-gray-500">or</span>
+      <span className="block my-1 text-center text-gray-500">Chứa có tài khoản?</span>
       <Link href="/register">
         <Button variant="outline" className="w-full">
-          CREATE A NEW ACCOUNT
+          TẠO TÀI KHOẢN MỚI
         </Button>
       </Link>
     </form>

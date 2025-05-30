@@ -8,7 +8,7 @@ import { ENDPOINTS } from "@/service/api.endpoint";
 import apiService from "@/service/api.service";
 import { RegisterRequest, RegisterRespone } from "@/types/auth.register";
 import { setEmailInCookies, setRegisterKeyInCookies } from "@/utils/token";
-import { Mail, User } from "lucide-react";
+import { Check, Mail, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -55,7 +55,7 @@ const RegisterPage: React.FC = () => {
       }
     } catch (error) {
       console.error("Register Error", error);
-      toast.error("Registration failed. Please try again.");
+      toast.error("Đăng ký thất bại, vui lòng thử lại sau");
     }
   };
   return (
@@ -66,7 +66,7 @@ const RegisterPage: React.FC = () => {
 
       <Input
         type="text"
-        placeholder="Username"
+        placeholder="Tên người dùng"
         startIcon={User}
         onChange={(e) =>
           setRegisterData({ ...registerData, username: e.target.value })
@@ -84,7 +84,7 @@ const RegisterPage: React.FC = () => {
       />
       <Input
         type="password"
-        placeholder="Password"
+        placeholder="Mật khẩu"
         onChange={(e) =>
           setRegisterData({ ...registerData, password: e.target.value })
         }
@@ -92,31 +92,31 @@ const RegisterPage: React.FC = () => {
       />
       <Input
         type="password"
-        placeholder="Repeat Password"
+        placeholder="Nhập lại mật khẩu"
         value={repeatPassword}
         onChange={(e) => setRepeatPassword(e.target.value)}
       />
       <div className="flex items-center">
-        <Checkbox id="remember" />
+        <Check className="text-primary" />
         <label
           htmlFor="remember"
           className="text-sm text-muted-foreground ml-2"
         >
-          By signing up, you agree to our{" "}
+          Khi ấn đăng nhậpm bạn đã đồng ý với {" "}
           <a href="#" className="text-primary hover:underline">
-            Terms of Service
+            Chinh sách sử dụng
           </a>{" "}
-          and{" "}
+          vàvà {" "}
           <a href="#" className="text-primary hover:underline">
-            Privacy Policy
+            Chính sách bảo mật
           </a>
           .
         </label>
       </div>
       <Button className="w-full" onClick={handleSubmit}>
-        CREATE AN ACCOUNT
+        Tạo tài khoản
       </Button>
-      <span className="block text-center text-gray-500">or</span>
+      <span className="block text-center text-gray-500">Đã có tài khoản?</span>
       <Button
         variant="outline"
         className="w-full"
@@ -124,7 +124,7 @@ const RegisterPage: React.FC = () => {
           window.location.href = "/login";
         }}
       >
-        I ALREADY HAVE AN ACCOUNT
+        Đăng nhập
       </Button>
     </div>
   );
