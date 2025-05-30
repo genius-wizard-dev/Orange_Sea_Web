@@ -82,6 +82,8 @@ const groupSlice = createSlice({
 				group.unreadCount = (group.unreadCount || 0) + action.payload.count;
 			}
 			state.groups = sortGroups(state.groups);
+
+			console.log("plusUnReadCountToGroup", action.payload.groupId, action.payload.count, group?.unreadCount);
 		},
 
 		updateLastMessage: (

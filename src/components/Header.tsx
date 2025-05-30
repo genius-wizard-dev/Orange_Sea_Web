@@ -32,7 +32,7 @@ import { fetchUserProfile } from "@/redux/thunks/userModal";
 import { AppDispatch } from "@/redux/store";
 
 const TopNavigation: React.FC = () => {
-  
+
   const dispatch: AppDispatch = useDispatch();
   const { isModalOpen, modalProfile, status } = useSelector((state: RootState) => state.userModal);
 
@@ -44,7 +44,7 @@ const TopNavigation: React.FC = () => {
   const { profile: userProfile } = useSelector(
     (state: RootState) => state.profile
   );
-  const { received : listFriend } = useSelector((state: RootState) => state.friend);
+  const { received: listFriend } = useSelector((state: RootState) => state.friend);
   const isLoggedIn = !!getAccessToken();
   const router = useRouter();
   const handleProfileClick = () => {
@@ -80,7 +80,9 @@ const TopNavigation: React.FC = () => {
       await apiService.post(ENDPOINTS.AUTH.LOGOUT);
       removeAccessToken();
       removeRefreshToken();
-      router.replace("/");
+      // Chuyển hướng về trang chủ sau khi đăng xuất
+      window.location.href = "/";
+      
     } catch (error) {
       console.error("Logout failed:", error);
       // Vẫn xóa token và chuyển hướng ngay cả khi request thất bại
@@ -115,7 +117,7 @@ const TopNavigation: React.FC = () => {
           </a>
         </div>
         <div className="flex items-center space-x-2">
-          
+
           {isLoggedIn ? (
             <>
               <Button
@@ -157,16 +159,16 @@ const TopNavigation: React.FC = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuLabel>{userProfile?.name}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleProfileClick}>
-                    Profile
+                    Hồ sơ cá nhân
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleChangePassword}>
-                    Change Password
+                    Thay đổi mật khẩu
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout}>
-                    Logout
+                    Đăng xuất
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -194,14 +196,12 @@ const TopNavigation: React.FC = () => {
         isOpen={isFriendOpen}
         onOpenChange={handleFriendOpenChange}
       />
-
-       {modalProfile && (
-        <UserProfileDialog
-          isOpen={isModalOpen}
-          onOpenChange={() => dispatch(closeUserModal())}
-          userProfile={modalProfile}
-        />
-      )}
+      <UserProfileDialog
+        isOpen={isModalOpen}
+        status={status}
+        onOpenChange={() => dispatch(closeUserModal())}
+        userProfile={modalProfile ? modalProfile : null}
+      />
     </>
   );
 };

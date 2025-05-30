@@ -21,7 +21,7 @@ export const ENDPOINTS = {
     INFO: (id: number) => `${BASE_ENDPOINT}/account/${id}`,
     GET_BY_USERNAME: (username: string) =>
       `${BASE_ENDPOINT}/account/username/${username}`,
-    PASSWORD: (id: string) => `${BASE_ENDPOINT}/account/${id}/password`,
+    PASSWORD: `${BASE_ENDPOINT}/account/password`,
   },
   FRIEND: {
     BASE: `${BASE_ENDPOINT}/friend`, //Post | Get

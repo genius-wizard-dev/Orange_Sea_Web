@@ -45,16 +45,16 @@ const Otp = () => {
       toast.success("OTP verified successfully");
       router.push("/login");
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error && 'response' in error && 
-        typeof error.response === 'object' && 
-        error.response !== null && 
-        'data' in error.response && 
-        typeof error.response.data === 'object' && 
-        error.response.data !== null && 
-        'message' in error.response.data && 
-        typeof error.response.data.message === 'string' 
-          ? error.response.data.message 
-          : "Failed to verify OTP";
+      const errorMessage = error instanceof Error && 'response' in error &&
+        typeof error.response === 'object' &&
+        error.response !== null &&
+        'data' in error.response &&
+        typeof error.response.data === 'object' &&
+        error.response.data !== null &&
+        'message' in error.response.data &&
+        typeof error.response.data.message === 'string'
+        ? error.response.data.message
+        : "Failed to verify OTP";
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -64,22 +64,24 @@ const Otp = () => {
   return (
     <div className="flex gap-4 flex-col">
       <h1 className="text-xl font-semibold text-center mb-5 w-full">
-        One step away from something great
+        Một bước xác thực cuối cùng, vui lòng nhập mã OTP đã gửi đến email của bạn
       </h1>
 
-      <InputOTP maxLength={6} onChange={setOtp}>
-        <InputOTPGroup>
-          <InputOTPSlot index={0} />
-          <InputOTPSlot index={1} />
-          <InputOTPSlot index={2} />
-          <InputOTPSlot index={3} />
-          <InputOTPSlot index={4} />
-          <InputOTPSlot index={5} />
-        </InputOTPGroup>
-      </InputOTP>
+      <div className="center">
+        <InputOTP maxLength={6} onChange={setOtp}>
+          <InputOTPGroup>
+            <InputOTPSlot index={0} />
+            <InputOTPSlot index={1} />
+            <InputOTPSlot index={2} />
+            <InputOTPSlot index={3} />
+            <InputOTPSlot index={4} />
+            <InputOTPSlot index={5} />
+          </InputOTPGroup>
+        </InputOTP>
+      </div>
 
       <Button className="w-full" onClick={handleVerifyOtp} disabled={loading}>
-        {loading ? "VERIFYING..." : "VERIFY OTP"}
+        {loading ? "Đang xác nhận..." : "Xác nhận OTP"}
       </Button>
     </div>
   );

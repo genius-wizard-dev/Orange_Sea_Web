@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { toast } from "sonner"; // Assuming you use sonner for notifications
+import { toast } from "sonner";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,8 @@ import { User } from "lucide-react";
 
 const emailSchema = z
   .string()
-  .email("Invalid email format")
-  .min(1, "Email is required");
+  .email("Định dạng email không hợp lệ")
+  .min(1, "Vui lòng nhập email");
 
 const Reset: React.FC = () => {
   const [email, setEmail] = useState<string>("");
@@ -21,15 +21,19 @@ const Reset: React.FC = () => {
   const [success, setSuccess] = useState<boolean>(false);
 
   useEffect(() => {
-    try {
-      emailSchema.parse(email);
-      setIsValid(true);
-    } catch (err) {
-      setIsValid(false);
-      if (err instanceof z.ZodError) {
-        toast.error(err.errors[0].message);
+    const handler = setTimeout(() => {
+      try {
+        emailSchema.parse(email);
+        setIsValid(true);
+      } catch (err) {
+        setIsValid(false);
+        if (err instanceof z.ZodError) {
+          toast.error(err.errors[0].message);
+        }
       }
-    }
+    }, 1000);
+
+    return () => clearTimeout(handler);
   }, [email]);
 
   const handleSubmit = async () => {
@@ -42,11 +46,11 @@ const Reset: React.FC = () => {
 
       if (res.statusCode === 200) {
         setSuccess(true);
-        toast.success("Reset password link has been sent to your email");
+        toast.success("Liên kết đặt lại mật khẩu đã được gửi tới email của bạn");
       }
     } catch (error: any) {
       toast.error(
-        error.response?.data?.message || "Failed to send reset email"
+        error.response?.data?.message || "Gửi email đặt lại mật khẩu thất bại"
       );
     } finally {
       setIsLoading(false);
@@ -56,14 +60,14 @@ const Reset: React.FC = () => {
   return (
     <div className="flex gap-4 flex-col">
       <h1 className="text-xl font-semibold text-center mb-5 w-full">
-        Lost access? No worries, let is fix it!
+        Quên mật khẩu? Đừng lo, chúng tôi sẽ giúp bạn!
       </h1>
 
       {!success ? (
         <>
           <Input
             type="text"
-            placeholder="Enter email"
+            placeholder="Nhập email của bạn"
             startIcon={User}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -75,7 +79,7 @@ const Reset: React.FC = () => {
               htmlFor="remember"
               className="text-sm text-muted-foreground ml-2"
             >
-        Hang tight! If your account exists in our system, a reset link will be on its way faster than saying the word password.
+              Vui lòng chờ! Nếu tài khoản của bạn tồn tại, liên kết đặt lại mật khẩu sẽ được gửi tới email của bạn trong chốc lát.
             </label>
           </div>
           <Button
@@ -83,17 +87,16 @@ const Reset: React.FC = () => {
             disabled={!isValid || isLoading}
             onClick={handleSubmit}
           >
-            {isLoading ? "SENDING..." : "RESET PASSWORD"}
+            {isLoading ? "ĐANG GỬI..." : "ĐẶT LẠI MẬT KHẨU"}
           </Button>
         </>
       ) : (
         <div className="text-center text-green-600 py-4">
-          Reset password link has been sent to your email. Please check your
-          inbox.
+          Liên kết đặt lại mật khẩu đã được gửi tới email của bạn. Vui lòng kiểm tra hộp thư đến.
         </div>
       )}
 
-      <span className="block my-1 text-center text-gray-500">or</span>
+      <span className="block my-1 text-center text-gray-500">hoặc</span>
       <Button
         variant="outline"
         className="w-full"
@@ -101,7 +104,7 @@ const Reset: React.FC = () => {
           window.location.href = "/login";
         }}
       >
-        BACK TO LOGIN PAGE
+        QUAY LẠI TRANG ĐĂNG NHẬP
       </Button>
     </div>
   );
