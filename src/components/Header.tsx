@@ -80,7 +80,9 @@ const TopNavigation: React.FC = () => {
       await apiService.post(ENDPOINTS.AUTH.LOGOUT);
       removeAccessToken();
       removeRefreshToken();
-      router.replace("/");
+      // Chuyển hướng về trang chủ sau khi đăng xuất
+      window.location.href = "/";
+      
     } catch (error) {
       console.error("Logout failed:", error);
       // Vẫn xóa token và chuyển hướng ngay cả khi request thất bại
@@ -157,16 +159,16 @@ const TopNavigation: React.FC = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuLabel>{userProfile?.name}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleProfileClick}>
-                    Profile
+                    Hồ sơ cá nhân
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleChangePassword}>
-                    Change Password
+                    Thay đổi mật khẩu
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout}>
-                    Logout
+                    Đăng xuất
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

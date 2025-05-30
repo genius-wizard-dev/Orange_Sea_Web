@@ -21,15 +21,19 @@ const Reset: React.FC = () => {
   const [success, setSuccess] = useState<boolean>(false);
 
   useEffect(() => {
-    try {
-      emailSchema.parse(email);
-      setIsValid(true);
-    } catch (err) {
-      setIsValid(false);
-      if (err instanceof z.ZodError) {
-        toast.error(err.errors[0].message);
+    const handler = setTimeout(() => {
+      try {
+        emailSchema.parse(email);
+        setIsValid(true);
+      } catch (err) {
+        setIsValid(false);
+        if (err instanceof z.ZodError) {
+          toast.error(err.errors[0].message);
+        }
       }
-    }
+    }, 1000);
+
+    return () => clearTimeout(handler);
   }, [email]);
 
   const handleSubmit = async () => {

@@ -9,7 +9,7 @@ import EndSidebar from "@/components/sidebar/EndSidebar";
 import StartSidebar from "@/components/sidebar/StartSidebar";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, MoreVertical, Phone, Video, ArrowBigLeft, ChevronLeft, User, X, UserCheck, UserPlus, Loader2 } from "lucide-react";
+import { Search, MoreVertical, Phone, Video, ArrowBigLeft, ChevronLeft, User, X, UserCheck, UserPlus, Loader2, Router } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
@@ -39,6 +39,7 @@ import { getFriend, getReceived, getRequested } from "@/redux/thunks/friend";
 import { EditMessageDialog } from "@/components/conversation/EditMessageDialog";
 import { openUserModal } from "@/redux/slices/userModal";
 import { fetchUserProfile } from "@/redux/thunks/userModal";
+import { removeAccessToken, removeRefreshToken } from "@/utils/token";
 
 const Page: React.FC = () => {
 
@@ -163,6 +164,50 @@ const Page: React.FC = () => {
 
 			});
 
+		});
+
+		socket.on("passwordUpdated", async () => {
+			try {
+				toast.info("Mật khẩu đã thay đổi, bạn sẽ được đăng xuất...", { duration: 3000 });
+				setTimeout(async () => {
+					await apiService.post(ENDPOINTS.AUTH.LOGOUT);
+					removeAccessToken();
+					removeRefreshToken();
+					window.location.href = "/";
+				}, 3000);
+			} catch (error) {
+				console.error("Logout failed:", error);
+				// Vẫn xóa token và chuyển hướng ngay cả khi request thất bại
+				removeAccessToken();
+				removeRefreshToken();
+				// router.replace("/");
+				window.location.href = "/";
+			}
+		});
+
+		socket.on('passwordReset', async () => {
+			// Thông báo khi mật khẩu được đặt lại
+			try {
+				toast.info("Mật khẩu đã thay đổi, bạn sẽ được đăng xuất...", { duration: 3000 });
+				setTimeout(async () => {
+					await apiService.post(ENDPOINTS.AUTH.LOGOUT);
+					removeAccessToken();
+					removeRefreshToken();
+					window.location.href = "/";
+				}, 3000);
+			} catch (error) {
+				console.error("Logout failed:", error);
+				// Vẫn xóa token và chuyển hướng ngay cả khi request thất bại
+				removeAccessToken();
+				removeRefreshToken();
+				// router.replace("/");
+				window.location.href = "/";
+			}
+		});
+
+		socket.on("profileUpdated", (data) => {
+			// Cập nhật thông tin người dùng trong Redux
+			dispatch(fetchUserProfile(userProfile?.id as string) as any);
 		});
 
 
