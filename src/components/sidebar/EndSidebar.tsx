@@ -31,6 +31,9 @@ import { Socket } from "socket.io-client";
 import { getSocket } from "@/lib/socket";
 import { Upload } from "lucide-react";
 import { fetchGroupList } from '@/redux/thunks/group';
+import { get } from 'http';
+import { openUserModal } from '@/redux/slices/userModal';
+import { fetchUserProfile } from '@/redux/thunks/userModal';
 
 interface EndSidebarProps {
     children?: React.ReactNode;
@@ -96,6 +99,30 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
     const socket: Socket = getSocket();
 
     const dispatch = useDispatch();
+
+    const getGroupName = (group?: Group): string => {
+        if (!group) {
+            return "";
+        }
+        if (group.isGroup) {
+            return group.name || "";
+        } else {
+            const participant = group.participants?.find(p => p.userId !== userProfile?.id);
+            return participant ? participant.name : "";
+        }
+    }
+
+    const getGroupAvatar = (group?: Group): string | undefined => {
+        if (!group) {
+            return undefined;
+        }
+        if (group.isGroup) {
+            return group.avatarUrl ?? undefined;
+        } else {
+            const participant = group.participants?.find(p => p.userId !== userProfile?.id);
+            return participant?.avatarUrl ?? undefined;
+        }
+    }
 
     const handleViewAllClick = (tab: 'media' | 'files') => {
         setViewAll(tab);
@@ -629,6 +656,11 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
         return <FilesView />;
     }
 
+    const handleUserClick = (profileId: string) => {
+        dispatch(openUserModal(profileId));
+        dispatch(fetchUserProfile(profileId) as any);
+    }
+
     return (
         <div className={cn(
             "w-1/4 h-full p-4 overflow-y-auto overflow-x-hidden border-s backdrop-filter backdrop-blur-md bg-white/70 z-30",
@@ -643,16 +675,21 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
             <Button variant="outline" className="mb-4" onClick={onClose}>X</Button>
             <div className="flex flex-col gap-4">
                 {/* Header thông tin nhóm */}
-                <div className="flex flex-col items-center mb-6">
+                <div className="flex flex-col items-center mb-6"
+                    onClick={() => !activeGroup?.isGroup && handleUserClick(activeGroup?.participants?.find(p => p.userId !== userProfile?.id)?.userId || "")}
+                >
                     <div className="w-28 h-28 rounded-full overflow-hidden shadow-lg mb-4 border-2 border-orange-200 p-1 bg-gradient-to-br from-orange-50 to-orange-100">
-                        <Avatar className="w-full h-full rounded-full overflow-hidden">
+                        <Avatar className={cn(
+                            "w-full h-full rounded-full overflow-hidden",
+                            activeGroup?.isGroup ? "cursor-pointer" : "cursor-default",
+                        )}>
                             <AvatarImage
-                                src={activeGroup?.isGroup ? activeGroup.avatarUrl : activeGroup?.participants?.[0].avatarUrl}
+                                src={getGroupAvatar(activeGroup)}
                                 alt="Avatar"
                                 className="object-cover"
                             />
                             <AvatarFallback className="">
-                                {activeGroup?.name
+                                {getGroupName(activeGroup)
                                     ?.split(" ")
                                     .map((word: any) => word[0])
                                     .join("")
@@ -663,8 +700,10 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2 mb-3 relative">
-                        <h2 className="text-xl font-semibold text-center">
-                            <span className="font-semibold">{activeGroup?.isGroup ? activeGroup.name : activeGroup?.participants?.[0].name}</span>
+                        <h2 className="text-xl font-semibold text-center"
+                            onClick={() => !activeGroup?.isGroup && handleUserClick(activeGroup?.participants?.find(p => p.userId !== userProfile?.id)?.userId || "")}
+                        >
+                            <span className="font-semibold">{getGroupName(activeGroup)}</span>
                         </h2>
                         {activeGroup?.isGroup === true && activeGroup?.ownerId === userProfile?.id && (
                             <button
@@ -814,11 +853,13 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
                                     exit={{ opacity: 0, height: 0 }}
                                     transition={{ duration: 0.2 }}
                                 >
-                                    <ScrollArea className="max-h-52 overflow-y-auto"> 
+                                    <ScrollArea className="max-h-52 overflow-y-auto">
                                         <ul>
                                             {activeGroup?.participants?.length ? (
                                                 activeGroup.participants.map((member) => (
-                                                    <li key={member.id} className="flex items-center justify-between py-2 border-b">
+                                                    <li key={member.id} className="flex items-center justify-between py-2 border-b cursor-pointer hover:bg-gray-50 transition-colors"
+                                                        onClick={() => handleUserClick(member.userId)}
+                                                    >
                                                         <div className="flex items-center gap-2">
                                                             <Avatar className="w-8 h-8">
                                                                 <AvatarImage src={member.avatarUrl} alt={member.name} />

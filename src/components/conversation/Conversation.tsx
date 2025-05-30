@@ -54,12 +54,12 @@ const Conversation: React.FC<ConversationProps> = ({
 	activeId = 0,
 	isGroup = false,
 	online = false,
-	onClick = () => {}
+	onClick = () => { }
 }) => {
 
 	const active = activeId === 0 ? false : activeId === id ? true : false;
 
-	if(name === null || name === undefined) {
+	if (name === null || name === undefined) {
 		name = 'Unknown';
 	}
 
@@ -82,41 +82,40 @@ const Conversation: React.FC<ConversationProps> = ({
 							.join("")}
 					</AvatarFallback>
 				</Avatar>
-				{ isGroup ? (<></>) :
-				online === "ACTIVE" ? (
-					<>
-						<span className="absolute right-0 bottom-0 w-3 h-3 bg-blue-500 animate-ping rounded-full"></span>
-						<span className="absolute right-0 bottom-0 w-3 h-3 bg-blue-500 border-2 border-white rounded-full"></span>
-					</>
-				) : online === "ONLINE" ? (
-					<span className="absolute right-0 bottom-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
-				) : online === "OFFLINE" ? (
-					<span className="absolute right-0 bottom-0 w-3 h-3 bg-gray-500 border-2 border-white rounded-full"></span>
-				) : null} 
+				{isGroup ? (<></>) :
+					online === "ACTIVE" ? (
+						<>
+							<span className="absolute right-0 bottom-0 w-3 h-3 bg-blue-500 animate-ping rounded-full"></span>
+							<span className="absolute right-0 bottom-0 w-3 h-3 bg-blue-500 border-2 border-white rounded-full"></span>
+						</>
+					) : online === "ONLINE" ? (
+						<span className="absolute right-0 bottom-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+					) : online === "OFFLINE" ? (
+						<span className="absolute right-0 bottom-0 w-3 h-3 bg-gray-500 border-2 border-white rounded-full"></span>
+					) : null}
 			</div>
 
 			{/* Text content */}
-			<div className="flex-1">
-				<div className={cn('font-semibold', active ? 'text-white' : 'text-gray-900')}>
-					{name} 
+			<div className="flex-1 w-0">
+				<div className={cn('font-semibold truncate', active ? 'text-white' : 'text-gray-900')}>
+					{name}
 				</div>
-				<div className={cn('text-sm', active ? 'text-white/80' : 'text-gray-500')}>
-					{
-						message?.isRecalled ? (
-							<span className="italic">Tin nhắn đã thu hồi</span>
-						) : message?.content ? (
-							(message?.content ?? '').length > 30 ? (message?.content ?? '').slice(0, 30) + '...' : message?.content ?? ''
-						) : message?.fileUrl ? (
-							<span className="italic">
-								Tệp đính kèm
-							</span>
-						) : (
-							<span className="italic">Chưa có tin nhắn nào</span>
-						)
-					}
+				<div className={cn('text-sm truncate', active ? 'text-white/80' : 'text-gray-500')}>
+					{message?.isRecalled ? (
+						<span className="italic">Tin nhắn đã thu hồi</span>
+					) : message?.content ? (
+						<span>
+							{isLastMessageOwn ? "Bạn: " : ""}
+							{message.content}
+						</span>
+					) : message?.fileUrl ? (
+						<span className="italic">Tệp đính kèm</span>
+					) : (
+						<span className="italic">Chưa có tin nhắn nào</span>
+					)}
 				</div>
 			</div>
-
+			
 			{/* Time & Unread */}
 			<div className="flex flex-col items-end gap-0">
 				<span className={cn('text-[11px]', active ? 'text-white' : 'text-gray-500')}>

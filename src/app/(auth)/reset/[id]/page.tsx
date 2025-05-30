@@ -1,10 +1,12 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getSocket } from "@/lib/socket";
 import { ENDPOINTS } from "@/service/api.endpoint";
 import apiService from "@/service/api.service";
 import { useParams, useRouter } from "next/navigation";
 import React, { useCallback, useState } from "react";
+import { Socket } from "socket.io-client";
 
 const ConfirmReset = () => {
   const params = useParams();
@@ -41,13 +43,28 @@ const ConfirmReset = () => {
     }
 
     try {
-      setLoading(true);
-      await apiService.post(ENDPOINTS.AUTH.RESET, {
+      // await apiService.post(ENDPOINTS.AUTH.RESET, {
+      //   newPassword: password,
+      //   token,
+      // });
+
+      const response: any = await apiService.post(ENDPOINTS.AUTH.RESET, {
         newPassword: password,
         token,
       });
+      if (response.statusCode !== 200) {
+        throw new Error("Failed to reset password");
+      } else {
+        // Emit reset password event to socket server
+        const socket: Socket = getSocket();
+        socket.emit("resetPassword", {
+          profileId: response.data.profileId
+        });
+        setLoading(true);
+        router.push("/login");
 
-      router.push("/login");
+      }
+
     } catch (error: any) {
       setError(error.response?.data?.message || "Failed to reset password");
     } finally {
@@ -58,7 +75,7 @@ const ConfirmReset = () => {
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-semibold text-center mb-5 w-full">
-        Reset Your Password
+        Đặt lại mật khẩu
       </h1>
       <form onSubmit={handleSubmit} className="flex gap-4 flex-col">
         {error && <div className="text-red-500">{error}</div>}
@@ -66,7 +83,7 @@ const ConfirmReset = () => {
         <Input
           type="password"
           name="password"
-          placeholder="New Password"
+          placeholder="Mật khẩu mới"
           onChange={handleInputChange}
           value={passwordData.password}
           required
@@ -75,7 +92,7 @@ const ConfirmReset = () => {
         <Input
           type="password"
           name="confirmPassword"
-          placeholder="Confirm Password"
+          placeholder="Xác nhận mật khẩu mới"
           value={passwordData.confirmPassword}
           onChange={handleInputChange}
           required

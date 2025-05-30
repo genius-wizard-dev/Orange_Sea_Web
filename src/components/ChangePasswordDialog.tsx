@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getSocket } from "@/lib/socket";
 import { RootState } from "@/redux/store";
 import { ENDPOINTS } from "@/service/api.endpoint";
 import apiService from "@/service/api.service";
@@ -16,6 +17,7 @@ import { removeAccessToken, removeRefreshToken } from "@/utils/token";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSelector } from "react-redux";
+import { Socket } from "socket.io-client";
 import { toast } from "sonner";
 interface ChangePasswordDialogProps {
   open: boolean;
@@ -59,20 +61,20 @@ const ChangePasswordDialog = ({
     let isValid = true;
 
     if (!currentPassword) {
-      newErrors.currentPassword = "Current password is required";
+      newErrors.currentPassword = "Mật khẩu hiện tại là bắt buộc";
       isValid = false;
     }
 
     if (!newPassword) {
-      newErrors.newPassword = "New password is required";
+      newErrors.newPassword = "Mật khẩu mới là bắt buộc";
       isValid = false;
     } else if (newPassword.length < 6) {
-      newErrors.newPassword = "Password must be at least 6 characters";
+      newErrors.newPassword = "Mật khẩu mới phải có ít nhất 6 ký tự";
       isValid = false;
     }
 
     if (newPassword !== confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
+      newErrors.confirmPassword = "Mật khẩu xác nhận không khớp";
       isValid = false;
     }
 
@@ -90,24 +92,31 @@ const ChangePasswordDialog = ({
         const result = await apiService.put<{
           statusCode: number;
           message?: string;
-        }>(ENDPOINTS.ACCOUNT.PASSWORD(userProfile?.accountID), {
+        }>(ENDPOINTS.ACCOUNT.PASSWORD, {
           currentPassword,
           newPassword,
         });
         if (result.statusCode === 400) {
-          toast.error(result.message || "Failed to change password");
+          toast.error(result.message || "Đổi mật khẩu không thành công");
         } else if (result.statusCode === 200) {
-          toast.success(result.message || "Password changed successfully");
+          toast.success(result.message || "Đổi mật khẩu thành công");
           onOpenChange(false);
+
+          const socket: Socket = getSocket();
+          if (socket) {
+            socket.emit("resetPassword", { profileId: userProfile.id });
+          }
+
+          // Reset form and redirect to login
           resetForm();
           removeAccessToken();
           removeRefreshToken();
-          router.replace("/login");
+          window.location.href = "/login";
         }
       }
     } catch (error: any) {
       const errorMessage =
-        error.response?.data?.message || "Failed to change password";
+        error.response?.data?.message || "Đã có lỗi xảy ra khi đổi mật khẩu";
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -131,7 +140,7 @@ const ChangePasswordDialog = ({
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="currentPassword" className="text-right">
-                Current Password
+                Mật khẩu hiện tại
               </Label>
               <div className="col-span-3">
                 <Input
@@ -150,7 +159,7 @@ const ChangePasswordDialog = ({
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="newPassword" className="text-right">
-                New Password
+                Mật khẩu mới
               </Label>
               <div className="col-span-3">
                 <Input
@@ -169,7 +178,7 @@ const ChangePasswordDialog = ({
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="confirmPassword" className="text-right">
-                Confirm Password
+                Xác nhận mật khẩu mới
               </Label>
               <div className="col-span-3">
                 <Input
@@ -196,7 +205,7 @@ const ChangePasswordDialog = ({
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Saving..." : "Save changes"}
+              {isLoading ? "Đang thay đổi..." : "Thay đổi mật khẩu"}
             </Button>
           </DialogFooter>
         </form>
