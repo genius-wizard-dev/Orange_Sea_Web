@@ -1,6 +1,6 @@
-import { Paperclip, Smile, Send, Image, Sticker, X, Clock } from "lucide-react";
+import { Paperclip, Smile, Send, Sticker, X, Clock } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
-import EmojiPicker from 'emoji-picker-react';
+import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,13 +17,6 @@ type ChatInputProps = {
 	onAttach?: () => void;
 };
 
-// const stickers = [
-// 	"https://i.imgur.com/3aXJ2cT.png",
-// 	"https://i.imgur.com/W5DqNfl.png",
-// 	"https://i.imgur.com/NWZc7Kx.png",
-// 	"https://i.imgur.com/X7Erbvb.png",
-// 	"https://i.imgur.com/NXwC2kx.png",
-// ];
 
 export const ChatInput: React.FC<ChatInputProps> = ({
 	onSend,
@@ -154,7 +147,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 						</Button>
 					</PopoverTrigger>
 					<PopoverContent className="p-0 w-fit shadow-none">
-						<EmojiPicker onEmojiClick={handleEmojiClick} emojiStyle="native" skinTonesDisabled />
+						<EmojiPicker onEmojiClick={handleEmojiClick} emojiStyle={EmojiStyle.NATIVE} skinTonesDisabled />
 					</PopoverContent>
 				</Popover>
 

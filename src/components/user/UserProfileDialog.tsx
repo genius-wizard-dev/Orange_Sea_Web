@@ -12,11 +12,9 @@ import {
   getRequested,
   getReceived,
 } from "@/redux/thunks/friend";
-import { ENDPOINTS } from "@/service/api.endpoint";
-import apiService from "@/service/api.service";
+
 import { Profile } from "@/types/profile";
 import { DialogTitle } from "@radix-ui/react-dialog";
-import { AnimatePresence, motion } from "framer-motion";
 import {
   Calendar,
   Mail,

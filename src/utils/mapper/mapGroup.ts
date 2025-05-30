@@ -1,5 +1,4 @@
 
-import { profile } from "@/redux/thunks/profile";
 import { Group } from "@/types/group";
 import { MessageType } from "@/types/message";
 
