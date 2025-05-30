@@ -26,18 +26,21 @@ const Reset: React.FC = () => {
       setIsValid(true);
     } catch (err) {
       setIsValid(false);
+      if (err instanceof z.ZodError) {
+        toast.error(err.errors[0].message);
+      }
     }
   }, [email]);
 
   const handleSubmit = async () => {
     try {
       setIsLoading(true);
-      const res = await apiService.post<{ status: number }>(
+      const res = await apiService.post<{ statusCode: number }>(
         ENDPOINTS.AUTH.FORGOT,
         { email }
       );
 
-      if (res.status === 200) {
+      if (res.statusCode === 200) {
         setSuccess(true);
         toast.success("Reset password link has been sent to your email");
       }
@@ -53,7 +56,7 @@ const Reset: React.FC = () => {
   return (
     <div className="flex gap-4 flex-col">
       <h1 className="text-xl font-semibold text-center mb-5 w-full">
-        Lost access? No worries, let's fix it!
+        Lost access? No worries, let is fix it!
       </h1>
 
       {!success ? (
@@ -72,8 +75,7 @@ const Reset: React.FC = () => {
               htmlFor="remember"
               className="text-sm text-muted-foreground ml-2"
             >
-              Hang tight! If your account is in our system, we'll send you a
-              reset link faster than you can say 'password'!
+        Hang tight! If your account exists in our system, a reset link will be on its way faster than saying the word password.
             </label>
           </div>
           <Button

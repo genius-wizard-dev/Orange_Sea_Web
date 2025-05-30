@@ -391,7 +391,6 @@ const EndSidebar: React.FC<EndSidebarProps> = ({
             fetchVideo();
         }
         if (viewAll === 'files') fetchFiles();
-        // eslint-disable-next-line
     }, [viewAll, activeGroup?.id]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
