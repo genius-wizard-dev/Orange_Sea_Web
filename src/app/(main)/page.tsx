@@ -37,7 +37,8 @@ import { fetchGroupList } from "@/redux/thunks/group";
 import { Upload } from "lucide-react";
 import { getFriend, getReceived, getRequested } from "@/redux/thunks/friend";
 import { EditMessageDialog } from "@/components/conversation/EditMessageDialog";
-
+import { openUserModal } from "@/redux/slices/userModal";
+import { fetchUserProfile } from "@/redux/thunks/userModal";
 
 const Page: React.FC = () => {
 
@@ -1035,7 +1036,11 @@ const Page: React.FC = () => {
 						>
 							<ChevronLeft className="w-5 h-5" />
 						</button>
-						<Avatar className="w-10 h-10 rounded-full overflow-hidden">
+						<Avatar className="w-10 h-10 rounded-full overflow-hidden"
+							onClick={() => {
+								setIsEndSidebarOpen(true);
+							}}
+						>
 							<AvatarImage src={getGroupAvatar(activeGroup)} alt="Avatar" />
 							<AvatarFallback>
 								{getGroupName(activeGroup)
